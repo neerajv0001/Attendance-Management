@@ -1,0 +1,54 @@
+[
+  {
+    "id": "STU2026502",
+    "username": "STU2026502",
+    "passwordHash": "$2b$10$u6YPSbwPBRwgFRd4PO8f5uwezWE6YxZPrLmpAw8pjrukb/oWMgOs6",
+    "role": "STUDENT",
+    "name": "Gangesh yadav",
+    "email": "",
+    "department": "Bsc IT",
+    "createdAt": "2026-02-20T15:07:41.916Z"
+  },
+  {
+    "id": "STU2026604",
+    "username": "STU2026604",
+    "passwordHash": "$2b$10$XKrzJMo1Kq5Ge8q7/4Opju.MCX4laXhgMAk5RDV0LpQiF.iBWFDba",
+    "role": "STUDENT",
+    "name": "binit",
+    "email": "neerajv514403@gmail.com",
+    "department": "Bsc IT",
+    "createdAt": "2026-02-20T15:07:19.912Z"
+  },
+  {
+    "id": "admin-1",
+    "username": "admin",
+    "passwordHash": "$2b$10$GnQ0rT7XTET1r84J7a729eYe2mZDaVzEM6orgXvJYxo.vOudaEmWq",
+    "role": "ADMIN",
+    "name": "System Admin",
+    "createdAt": "2026-02-12T18:18:46.672Z"
+  },
+  {
+    "id": "teacher-1771413429408",
+    "username": "teacher@test.com",
+    "passwordHash": "$2b$10$FFKSDcq8nKjlNJx7nDe4J.d3nbUa331B0cJPGgRanQWaEQBF0mXYS",
+    "role": "TEACHER",
+    "name": "raju ",
+    "email": "teacher@test.com",
+    "qualification": "M tech",
+    "experience": "6",
+    "subject": "Bussiness Intelligence ",
+    "courseId": "course-1771404653962",
+    "isApproved": true,
+    "createdAt": "2026-02-18T11:17:09.408Z"
+  },
+  {
+    "id": "STU2026807",
+    "username": "STU2026807",
+    "passwordHash": "$2b$10$NxphPDuk120W5Tif6mMqbeUnQE2oPZPiZJmtn9SWCerUw.iuaOW/a",
+    "role": "STUDENT",
+    "name": "neeraj vishwakarma ",
+    "email": "",
+    "department": "Bsc IT",
+    "createdAt": "2026-02-18T12:50:14.126Z"
+  }
+]
