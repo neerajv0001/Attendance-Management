@@ -13,7 +13,7 @@ export default function AdminStudents() {
   useEffect(() => {
     let mounted = true;
     const load = () => {
-      fetch('/api/students')
+      fetch('/api/students', { cache: 'no-store' })
         .then(res => res.json())
         .then(data => {
           if (!mounted) return;

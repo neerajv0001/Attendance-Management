@@ -25,6 +25,12 @@ interface SidebarProps {
   forceLocked?: boolean;
 }
 
+const PROFILE_BY_ROLE: Record<'ADMIN' | 'TEACHER' | 'STUDENT', { name: string; title: string; initials: string }> = {
+  ADMIN: { name: 'Admin User', title: 'System Administrator', initials: 'AU' },
+  TEACHER: { name: 'Teacher User', title: 'Faculty Member', initials: 'TU' },
+  STUDENT: { name: 'Student User', title: 'Learner', initials: 'SU' },
+};
+
 const MENU_ITEMS: Record<string, { name: string; path: string; icon: React.ReactNode }[]> = {
   ADMIN: [
     { name: 'Dashboard', path: '/admin/dashboard', icon: <DashboardIcon /> },
@@ -60,28 +66,36 @@ const MENU_ITEMS: Record<string, { name: string; path: string; icon: React.React
 export default function Sidebar({ role, isOpen, forceLocked }: SidebarProps) {
   const pathname = usePathname();
   const items = MENU_ITEMS[role];
+  const profile = PROFILE_BY_ROLE[role];
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const toast = useToast();
+  const [mounted, setMounted] = useState(false);
   const [locked, setLocked] = useState<boolean>(!!forceLocked);
+  const lockStorageKey = `sidebarLocked:${role}`;
 
   // Read persisted `sidebarLocked` only on the client to avoid SSR/client mismatch
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
     if (typeof window === 'undefined') return;
     if (forceLocked) {
       setLocked(true);
       return;
     }
     try {
-      const val = localStorage.getItem('sidebarLocked');
+      const val = localStorage.getItem(lockStorageKey);
       setLocked(val === '1');
     } catch {}
-  }, [forceLocked]);
+  }, [forceLocked, mounted, lockStorageKey]);
   const [hovered, setHovered] = useState(false);
   const asideRef = useRef<HTMLElement | null>(null);
 
   // Expansion is controlled locally: either explicitly locked open, or hovered.
   // Ignore external `isOpen` to avoid stale external state keeping the sidebar open.
-  const expanded = locked || hovered;
+  const expanded = !!forceLocked || (mounted && (locked || hovered));
 
   const handleLogout = async () => {
     try {
@@ -104,7 +118,7 @@ export default function Sidebar({ role, isOpen, forceLocked }: SidebarProps) {
   const toggleLock = () => {
     const next = !locked;
     setLocked(next);
-    try { localStorage.setItem('sidebarLocked', next ? '1' : '0'); } catch {}
+    try { localStorage.setItem(lockStorageKey, next ? '1' : '0'); } catch {}
     // If unlocking, immediately collapse the expanded hover state so width returns
     if (!next) {
       setHovered(false);
@@ -137,7 +151,7 @@ export default function Sidebar({ role, isOpen, forceLocked }: SidebarProps) {
     <>
       <aside
         ref={asideRef}
-        className={`sidebar ${expanded ? 'open' : ''}`}
+        className={`sidebar bg-gradient-to-b from-[#1e1e2f] to-[#111119] ${expanded ? 'open' : ''}`}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         style={{ width: expanded ? 256 : 80, transition: 'all 300ms ease-in-out' }}
@@ -147,17 +161,23 @@ export default function Sidebar({ role, isOpen, forceLocked }: SidebarProps) {
             {/* Bars icon */}
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
           </button>
-          <span className="brand-icon">📚</span>
           <span className="brand-label">Attendance Pro</span>
+        </div>
+        <div className="sidebar-profile">
+          <div className="sidebar-avatar" aria-hidden="true">{profile.initials}</div>
+          <div className="sidebar-profile-meta">
+            <div className="sidebar-profile-name">{profile.name}</div>
+            <div className="sidebar-profile-title">{profile.title}</div>
+          </div>
         </div>
         <ul className="sidebar-menu">
           {items.map((item) => (
             <li key={item.path}>
               <Link 
                 href={item.path} 
-                className={pathname === item.path ? 'active' : ''}
+                className={`group ${mounted && pathname === item.path ? 'active bg-blue-600/20 text-blue-400 border-r-4 border-blue-500' : ''}`}
               >
-                <span className="sidebar-icon">{item.icon}</span>
+                <span className="sidebar-icon text-gray-400 group-hover:text-white transition-all">{item.icon}</span>
                 <span className="sidebar-label">{item.name}</span>
               </Link>
             </li>
@@ -208,3 +228,6 @@ export default function Sidebar({ role, isOpen, forceLocked }: SidebarProps) {
     </>
   );
 }
+
+
+

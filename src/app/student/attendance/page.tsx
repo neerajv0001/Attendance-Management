@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { useToast } from '@/components/ToastProvider';
 import { UserRole } from '@/lib/types';
@@ -10,8 +10,8 @@ export default function StudentAttendanceHistory() {
   const [loading, setLoading] = useState(true);
   const toast = useToast();
 
-  useEffect(() => {
-    fetch('/api/attendance')
+  const loadHistory = useCallback(() => {
+    fetch('/api/attendance', { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
@@ -22,7 +22,23 @@ export default function StudentAttendanceHistory() {
         toast.showToast?.('Failed to load attendance data', 'error');
         setLoading(false);
       });
-  }, []);
+  }, [toast]);
+
+  useEffect(() => {
+    loadHistory();
+  }, [loadHistory]);
+
+  useEffect(() => {
+    const onUpdate = (event: any) => {
+      const msg = event?.detail;
+      if (!msg) return;
+      if (msg.type === 'attendance_saved') {
+        loadHistory();
+      }
+    };
+    window.addEventListener('attendance:update', onUpdate as any);
+    return () => window.removeEventListener('attendance:update', onUpdate as any);
+  }, [loadHistory]);
 
   if (loading) return <div>Loading...</div>;
 

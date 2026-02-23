@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { UserRole } from '@/lib/types';
 import { useToast } from '@/components/ToastProvider';
@@ -17,18 +17,40 @@ export default function ReportsPage() {
   const [sortDir, setSortDir] = useState<'desc'|'asc'>('desc');
   const toast = useToast();
 
+  const refreshCourses = useCallback(async () => {
+    try {
+      const res = await fetch('/api/courses', { cache: 'no-store' });
+      const data = await res.json();
+      const next = Array.isArray(data) ? data : [];
+      setCourses(next);
+      if (selectedClass && !next.some((c: any) => c.name.trim() === selectedClass)) {
+        setSelectedClass('');
+      }
+    } catch (e) {}
+  }, [selectedClass]);
+
   useEffect(() => {
     // load base data
     Promise.all([
-      fetch('/api/students').then(r => r.json()),
-      fetch('/api/attendance').then(r => r.json()),
-      fetch('/api/courses').then(r => r.json())
+      fetch('/api/students', { cache: 'no-store' }).then(r => r.json()),
+      fetch('/api/attendance', { cache: 'no-store' }).then(r => r.json()),
+      fetch('/api/courses', { cache: 'no-store' }).then(r => r.json())
     ]).then(([studs, att, crs]) => {
       setStudents(Array.isArray(studs) ? studs : []);
       setAttendance(Array.isArray(att) ? att : []);
       setCourses(Array.isArray(crs) ? crs : []);
     }).catch(() => toast.showToast?.('Failed to load report data', 'error'));
   }, []);
+
+  useEffect(() => {
+    const onUpdate = (event: any) => {
+      const msg = event?.detail;
+      if (!msg || msg.type !== 'courses_updated') return;
+      refreshCourses();
+    };
+    window.addEventListener('attendance:update', onUpdate as any);
+    return () => window.removeEventListener('attendance:update', onUpdate as any);
+  }, [refreshCourses]);
 
   // Debounce search
   useEffect(() => {

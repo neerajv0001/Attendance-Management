@@ -71,7 +71,7 @@ export default function DashboardLayout({ children, role }: { children: React.Re
 
   return (
     <div className="dashboard-layout">
-      <Sidebar role={role} isOpen={sidebarOpen} forceLocked={role !== UserRole.ADMIN} />
+      <Sidebar role={role} isOpen={sidebarOpen} />
        <div className="main-content">
          <header className="top-navbar">
            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -101,11 +101,23 @@ export default function DashboardLayout({ children, role }: { children: React.Re
                 border: `2px solid ${getRoleColor()}40`
               }}>
                 {role === UserRole.ADMIN ? (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l1.8 4.2L18 7l-3 2.6L15.6 14 12 12.2 8.4 14 9 9.6 6 7l4.2-0.8L12 2z"/></svg>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 3 5 6v6c0 5 3.5 8 7 9 3.5-1 7-4 7-9V6l-7-3z" />
+                    <path d="m9 12 2 2 4-4" />
+                  </svg>
                 ) : role === UserRole.TEACHER ? (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" />
+                    <path d="M4 20a8 8 0 0 1 16 0" />
+                    <path d="M18 7h4" />
+                    <path d="M20 5v4" />
+                  </svg>
                 ) : (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M12 14s4-2 6-5-2-5-6-2-6 2-6 5 4 2 6 2z"/><path d="M2 20a10 10 0 0 1 20 0"/></svg>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 10 12 5 2 10l10 5 10-5z" />
+                    <path d="M6 12v5c3 2 9 2 12 0v-5" />
+                    <path d="M22 10v6" />
+                  </svg>
                 )}
               </div>
            </div>

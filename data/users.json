@@ -10,16 +10,6 @@
     "createdAt": "2026-02-20T15:07:41.916Z"
   },
   {
-    "id": "STU2026604",
-    "username": "STU2026604",
-    "passwordHash": "$2b$10$XKrzJMo1Kq5Ge8q7/4Opju.MCX4laXhgMAk5RDV0LpQiF.iBWFDba",
-    "role": "STUDENT",
-    "name": "binit",
-    "email": "neerajv514403@gmail.com",
-    "department": "Bsc IT",
-    "createdAt": "2026-02-20T15:07:19.912Z"
-  },
-  {
     "id": "admin-1",
     "username": "admin",
     "passwordHash": "$2b$10$GnQ0rT7XTET1r84J7a729eYe2mZDaVzEM6orgXvJYxo.vOudaEmWq",

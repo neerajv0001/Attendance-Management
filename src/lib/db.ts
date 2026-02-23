@@ -20,11 +20,13 @@ export const db = {
                     role: u.role as UserRole,
                     name: u.name,
                     email: u.email,
+                    phone: u.phone,
                     isApproved: u.isApproved,
                     subject: u.subject,
                     qualification: u.qualification,
                     experience: u.experience,
                     department: u.department,
+                    courseId: u.courseId,
                     createdAt: (u.createdAt instanceof Date)
                         ? u.createdAt.toISOString()
                         : (typeof u.createdAt === 'string' ? u.createdAt : new Date(u.createdAt).toISOString()),
@@ -42,11 +44,13 @@ export const db = {
                         role: u.role as UserRole,
                         name: u.name,
                         email: u.email,
+                        phone: u.phone,
                         isApproved: u.isApproved,
                         subject: u.subject,
                         qualification: u.qualification,
                         experience: u.experience,
                         department: u.department,
+                        courseId: u.courseId,
                         createdAt: typeof u.createdAt === 'string' ? u.createdAt : new Date(u.createdAt).toISOString(),
                     }));
                 } catch (fileErr) {
@@ -75,11 +79,13 @@ export const db = {
                     role: user.role,
                     name: user.name,
                     email: user.email,
+                    phone: user.phone,
                     isApproved: user.isApproved,
                     subject: user.subject,
                     qualification: user.qualification,
                     experience: user.experience,
                     department: user.department,
+                    courseId: user.courseId,
                     createdAt: new Date(user.createdAt),
                 });
                 return user;
@@ -122,11 +128,13 @@ export const db = {
                     role: user.role as UserRole,
                     name: user.name,
                     email: user.email,
+                    phone: user.phone,
                     isApproved: user.isApproved,
                     subject: user.subject,
                     qualification: user.qualification,
                     experience: user.experience,
                     department: user.department,
+                    courseId: user.courseId,
                     createdAt: (user.createdAt instanceof Date)
                         ? user.createdAt.toISOString()
                         : (typeof user.createdAt === 'string' ? user.createdAt : new Date(user.createdAt).toISOString()),

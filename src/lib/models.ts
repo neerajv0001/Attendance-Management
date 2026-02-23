@@ -9,6 +9,7 @@ export interface IUser extends Document {
     role: UserRole;
     name: string;
     email?: string;
+    phone?: string;
     isApproved?: boolean;
     subject?: string;
     qualification?: string;
@@ -25,6 +26,7 @@ const UserSchema = new Schema<IUser>({
     role: { type: String, enum: Object.values(UserRole), required: true },
     name: { type: String, required: true },
     email: { type: String },
+    phone: { type: String },
     isApproved: { type: Boolean, default: false },
     subject: { type: String },
     qualification: { type: String },

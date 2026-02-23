@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { UserRole } from '@/lib/types';
 import Link from 'next/link';
@@ -14,8 +14,8 @@ export default function AdminDashboard() {
   });
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetch('/api/admin/stats')
+  const loadStats = useCallback(() => {
+    fetch('/api/admin/stats', { cache: 'no-store' })
       .then((res) => res.json())
       .then((data) => {
         // Merge with defaults to avoid missing fields causing runtime errors
@@ -26,6 +26,22 @@ export default function AdminDashboard() {
         setLoading(false);
       });
   }, []);
+
+  useEffect(() => {
+    loadStats();
+  }, [loadStats]);
+
+  useEffect(() => {
+    const onUpdate = (event: any) => {
+      const msg = event?.detail;
+      if (!msg) return;
+      if (msg.type === 'courses_updated' || msg.type === 'students_updated' || msg.type === 'teachers_updated') {
+        loadStats();
+      }
+    };
+    window.addEventListener('attendance:update', onUpdate as any);
+    return () => window.removeEventListener('attendance:update', onUpdate as any);
+  }, [loadStats]);
 
   if (loading) {
     return (

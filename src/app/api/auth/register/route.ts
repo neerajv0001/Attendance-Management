@@ -5,7 +5,19 @@ import bcrypt from 'bcryptjs';
 
 export async function POST(req: Request) {
     try {
-        const { name, email, qualification, experience, subject, courseId, password } = await req.json();
+        const { name, email, phone, qualification, experience, subject, courseId, password } = await req.json();
+
+        if (!name || !email || !phone || !qualification || !experience || !subject || !courseId || !password) {
+            return NextResponse.json({ error: 'All fields are required' }, { status: 400 });
+        }
+
+        if (!/^[a-zA-Z0-9._%+-]+@gmail\.com$/.test(String(email).trim())) {
+            return NextResponse.json({ error: 'Please enter a valid Gmail address' }, { status: 400 });
+        }
+
+        if (!/^\d{10}$/.test(String(phone))) {
+            return NextResponse.json({ error: 'Phone Number must be exactly 10 digits' }, { status: 400 });
+        }
 
         const hashedPassword = await bcrypt.hash(password, 10);
         const id = `teacher-${Date.now()}`;
@@ -17,6 +29,7 @@ export async function POST(req: Request) {
             role: UserRole.TEACHER,
             name,
             email,
+            phone,
             qualification,
             experience,
             subject,

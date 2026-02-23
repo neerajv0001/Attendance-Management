@@ -11,6 +11,7 @@ export interface User {
   role: UserRole;
   name: string;
   email?: string;
+  phone?: string;
   isApproved?: boolean; // For teachers
   subject?: string; // For teachers
   qualification?: string; // For teachers

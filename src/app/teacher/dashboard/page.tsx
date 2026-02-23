@@ -8,68 +8,48 @@ import Link from 'next/link';
 export default function TeacherDashboard() {
   const [stats, setStats] = useState({
     totalStudents: 0,
-    todayPresentPct: 0,
-    todayAbsentPct: 0,
     todayPresentCount: 0,
-    todayAbsentCount: 0,
-    weeklyPresentPct: 0,
-    weeklyAbsentPct: 0,
-    weeklyPresentCount: 0,
-    weeklyAbsentCount: 0,
-    weeklyPossible: 0
+    todayAbsentCount: 0
   });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([
-      fetch('/api/students').then(r => r.json()),
-      fetch('/api/attendance').then(r => r.json())
-    ]).then(([students, attendance]) => {
-      const today = new Date();
-      const todayKey = today.toISOString().split('T')[0];
-      const todayAttendance = attendance.filter((a: any) => a.date === todayKey);
+    let alive = true;
 
-      // compute today's present/absent counts
-      const todayPresent = todayAttendance.filter((a: any) => a.status === 'PRESENT').length;
-      const todayAbsent = todayAttendance.filter((a: any) => a.status === 'ABSENT').length;
+    const loadStats = async () => {
+      try {
+        const [students, attendance] = await Promise.all([
+          fetch('/api/students').then((r) => r.json()),
+          fetch('/api/attendance').then((r) => r.json())
+        ]);
 
-      // Compute weekly range: Monday -> Saturday (exclude Sunday)
-      const d = new Date();
-      const day = d.getDay(); // 0 (Sun) - 6 (Sat)
-      const diffToMonday = day === 0 ? -6 : 1 - day;
-      const weekStart = new Date(d);
-      weekStart.setDate(d.getDate() + diffToMonday);
-      const weekDates: string[] = [];
-      for (let i = 0; i < 6; i++) { // Monday..Saturday (6 days)
-        const dd = new Date(weekStart);
-        dd.setDate(weekStart.getDate() + i);
-        weekDates.push(dd.toISOString().split('T')[0]);
+        const todayKey = new Date().toISOString().split('T')[0];
+        const todayAttendance = (Array.isArray(attendance) ? attendance : []).filter((a: any) => a.date === todayKey);
+        const todayPresent = todayAttendance.filter((a: any) => a.status === 'PRESENT').length;
+        const todayAbsent = todayAttendance.filter((a: any) => a.status === 'ABSENT').length;
+
+        if (!alive) return;
+        setStats({
+          totalStudents: Array.isArray(students) ? students.length : 0,
+          todayPresentCount: todayPresent,
+          todayAbsentCount: todayAbsent
+        });
+      } finally {
+        if (alive) setLoading(false);
       }
+    };
 
-      const weeklyRecords = attendance.filter((a: any) => weekDates.includes(a.date));
-      const weeklyPresent = weeklyRecords.filter((a: any) => a.status === 'PRESENT').length;
-      const weeklyAbsent = weeklyRecords.filter((a: any) => a.status === 'ABSENT').length;
-      const possible = students.length * 6; // possible marks in week (Mon-Sat)
+    loadStats();
 
-      const todayPresentPct = students.length > 0 ? Math.min(100, (todayPresent / students.length) * 100) : 0;
-      const todayAbsentPct = students.length > 0 ? Math.min(100, (todayAbsent / students.length) * 100) : 0;
-      const weeklyPresentPct = possible > 0 ? Math.min(100, (weeklyPresent / possible) * 100) : 0;
-      const weeklyAbsentPct = possible > 0 ? Math.min(100, (weeklyAbsent / possible) * 100) : 0;
+    const onAttendanceUpdate = () => loadStats();
+    window.addEventListener('attendance:update', onAttendanceUpdate as EventListener);
+    const intervalId = setInterval(loadStats, 10000);
 
-      setStats({
-        totalStudents: students.length,
-        todayPresentPct,
-        todayAbsentPct,
-        todayPresentCount: todayPresent,
-        todayAbsentCount: todayAbsent,
-        weeklyPresentPct,
-        weeklyAbsentPct,
-        weeklyPresentCount: weeklyPresent,
-        weeklyAbsentCount: weeklyAbsent,
-        weeklyPossible: possible
-      });
-      setLoading(false);
-    });
+    return () => {
+      alive = false;
+      window.removeEventListener('attendance:update', onAttendanceUpdate as EventListener);
+      clearInterval(intervalId);
+    };
   }, []);
 
   if (loading) {
@@ -89,7 +69,7 @@ export default function TeacherDashboard() {
         <h1>Teacher Dashboard</h1>
         <p>Manage your students and track attendance efficiently.</p>
       </div>
-      
+
       <div className="grid-3" style={{ marginBottom: '32px' }}>
         <div className="stat-card info">
           <div className="stat-icon info">👨‍🎓</div>
@@ -98,41 +78,22 @@ export default function TeacherDashboard() {
             <p style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--primary-color)' }}>{stats.totalStudents}</p>
           </div>
         </div>
+
         <div className="stat-card success">
-          <div className="stat-icon success">✓</div>
+          <div className="stat-icon success">✅</div>
           <div>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '6px' }}>Today's Attendance</p>
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'baseline' }}>
-              <div>
-                <p style={{ margin: 0, fontSize: '1rem', color: 'var(--text-secondary)' }}>Present</p>
-                <p style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--primary-color)' }}>{(stats.todayPresentPct ?? 0).toFixed(0)}%</p>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>{stats.todayPresentCount} of {stats.totalStudents}</p>
-              </div>
-              <div>
-                <p style={{ margin: 0, fontSize: '1rem', color: 'var(--text-secondary)' }}>Absent</p>
-                <p style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--danger-color)' }}>{(stats.todayAbsentPct ?? 0).toFixed(0)}%</p>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>{stats.todayAbsentCount} of {stats.totalStudents}</p>
-              </div>
-            </div>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '4px' }}>Today Present</p>
+            <p style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--primary-color)' }}>{stats.todayPresentCount}</p>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>Out of {stats.totalStudents} students</p>
           </div>
         </div>
-        <div className="stat-card warning">
-          <div className="stat-icon warning">📈</div>
+
+        <div className="stat-card danger">
+          <div className="stat-icon danger">❌</div>
           <div>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '6px' }}>Weekly (Mon–Sat)</p>
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'baseline' }}>
-              <div>
-                <p style={{ margin: 0, fontSize: '1rem', color: 'var(--text-secondary)' }}>Present</p>
-                <p style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--primary-color)' }}>{(stats.weeklyPresentPct ?? 0).toFixed(1)}%</p>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>{stats.weeklyPresentCount} of {stats.weeklyPossible}</p>
-              </div>
-              <div>
-                <p style={{ margin: 0, fontSize: '1rem', color: 'var(--text-secondary)' }}>Absent</p>
-                <p style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--danger-color)' }}>{(stats.weeklyAbsentPct ?? 0).toFixed(1)}%</p>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>{stats.weeklyAbsentCount} of {stats.weeklyPossible}</p>
-              </div>
-            </div>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-light)', marginTop: 8 }}>Monday — Saturday</p>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '4px' }}>Today Absent</p>
+            <p style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--danger-color)' }}>{stats.todayAbsentCount}</p>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>Out of {stats.totalStudents} students</p>
           </div>
         </div>
       </div>
@@ -143,7 +104,7 @@ export default function TeacherDashboard() {
           Add New Student
         </Link>
         <Link href="/teacher/attendance" className="btn btn-lg btn-outline">
-          <span>✓</span>
+          <span>✅</span>
           Mark Attendance
         </Link>
         <Link href="/teacher/reports" className="btn btn-lg btn-outline">

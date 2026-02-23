@@ -21,8 +21,8 @@ export default function StudentDashboard() {
     const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
     
     Promise.all([
-      fetch('/api/attendance').then(r => r.json()),
-      fetch('/api/timetable').then(r => r.json())
+      fetch('/api/attendance', { cache: 'no-store' }).then(r => r.json()),
+      fetch('/api/timetable', { cache: 'no-store' }).then(r => r.json())
     ]).then(([attendance, timetable]) => {
       if (Array.isArray(attendance)) {
         const total = attendance.length;
@@ -55,11 +55,11 @@ export default function StudentDashboard() {
     const onUpdate = (e: any) => {
       const d = e?.detail;
       if (!d) return;
-      if (d.type === 'courses_updated' || d.type === 'attendance_saved') {
+      if (d.type === 'courses_updated' || d.type === 'attendance_saved' || d.type === 'timetable_updated') {
         // re-run the fetch logic
         Promise.all([
-          fetch('/api/attendance').then(r => r.json()),
-          fetch('/api/timetable').then(r => r.json())
+          fetch('/api/attendance', { cache: 'no-store' }).then(r => r.json()),
+          fetch('/api/timetable', { cache: 'no-store' }).then(r => r.json())
         ]).then(([attendance, timetable]) => {
           if (Array.isArray(attendance)) {
             const total = attendance.length;

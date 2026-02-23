@@ -3,13 +3,25 @@ import { db } from '@/lib/db';
 import { UserRole } from '@/lib/types';
 import { getSessionUser } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(req: Request) {
     try {
         const courses = await db.courses.getAll();
-        return NextResponse.json(courses);
+        return NextResponse.json(courses, {
+            headers: {
+                'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+            },
+        });
     } catch (error) {
         console.error('Courses GET error:', error);
-        return NextResponse.json([], { status: 200 });
+        return NextResponse.json([], {
+            status: 200,
+            headers: {
+                'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+            },
+        });
     }
 }
 

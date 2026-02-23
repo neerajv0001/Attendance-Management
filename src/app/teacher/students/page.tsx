@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { UserRole } from '@/lib/types';
 import Link from 'next/link';
@@ -19,12 +19,8 @@ export default function TeacherStudents() {
   const [query, setQuery] = useState('');
   const toast = useToast();
 
-  useEffect(() => {
-    fetchStudents();
-  }, []);
-
-  const fetchStudents = () => {
-    fetch('/api/students')
+  const fetchStudents = useCallback(() => {
+    fetch('/api/students', { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
         const list = Array.isArray(data) ? data : [];
@@ -32,7 +28,23 @@ export default function TeacherStudents() {
         setFiltered(list);
         setLoading(false);
       });
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchStudents();
+  }, [fetchStudents]);
+
+  useEffect(() => {
+    const onUpdate = (event: any) => {
+      const msg = event?.detail;
+      if (!msg) return;
+      if (msg.type === 'students_updated' || msg.type === 'courses_updated') {
+        fetchStudents();
+      }
+    };
+    window.addEventListener('attendance:update', onUpdate as any);
+    return () => window.removeEventListener('attendance:update', onUpdate as any);
+  }, [fetchStudents]);
 
   // debounced search
   useEffect(() => setFiltered(students), [students]);
@@ -65,6 +77,11 @@ export default function TeacherStudents() {
       if (res.ok) {
         setMessage({ type: 'success', text: 'Student updated successfully!' });
         toast.showToast?.('Student updated successfully!', 'success');
+        try {
+          const bc = new BroadcastChannel('attendance_channel');
+          bc.postMessage({ type: 'students_updated', source: 'teacher-students' });
+          bc.close();
+        } catch (e) {}
         setEditingStudent(null);
         fetchStudents();
       } else {
@@ -88,6 +105,11 @@ export default function TeacherStudents() {
         const text = `Student ${name} deleted successfully!`;
         setMessage({ type: 'success', text });
         toast.showToast?.(text, 'success');
+        try {
+          const bc = new BroadcastChannel('attendance_channel');
+          bc.postMessage({ type: 'students_updated', source: 'teacher-students' });
+          bc.close();
+        } catch (e) {}
         setDeleteConfirm(null);
         fetchStudents();
       } else {

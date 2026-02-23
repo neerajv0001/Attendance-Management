@@ -15,6 +15,7 @@ export default function StudentSettings() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const toast = useToast();
 
@@ -113,6 +114,26 @@ export default function StudentSettings() {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    setDeleteConfirmOpen(false);
+    setLoading(true);
+    try {
+      const res = await fetch('/api/user/settings', { method: 'DELETE' });
+      const data = await res.json();
+      if (res.ok) {
+        toast.showToast?.('Account deleted. Redirecting...', 'success');
+        try { await fetch('/api/auth/logout', { method: 'POST' }); } catch {}
+        window.location.href = '/register';
+      } else {
+        toast.showToast?.(data.error || 'Failed to delete account', 'error');
+      }
+    } catch (err: any) {
+      toast.showToast?.(err?.message || 'Failed to delete account', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <DashboardLayout role={UserRole.STUDENT}>
       <div className="page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
@@ -123,26 +144,7 @@ export default function StudentSettings() {
         <div>
           <button
             className="btn btn-danger"
-            onClick={async () => {
-              if (!confirm('This will permanently delete your account. This cannot be undone. Are you sure?')) return;
-              setLoading(true);
-              try {
-                const res = await fetch('/api/user/settings', { method: 'DELETE' });
-                const data = await res.json();
-                if (res.ok) {
-                  toast.showToast?.('Account deleted. Redirecting...', 'success');
-                  // Clear client session by calling logout route if available
-                  try { await fetch('/api/auth/logout', { method: 'POST' }); } catch {}
-                  window.location.href = '/register';
-                } else {
-                  toast.showToast?.(data.error || 'Failed to delete account', 'error');
-                }
-              } catch (err: any) {
-                toast.showToast?.(err?.message || 'Failed to delete account', 'error');
-              } finally {
-                setLoading(false);
-              }
-            }}
+            onClick={() => setDeleteConfirmOpen(true)}
           >
             Delete Account
           </button>
@@ -297,6 +299,20 @@ export default function StudentSettings() {
           </form>
         </div>
       </div>
+      {deleteConfirmOpen && (
+        <div className="modal-overlay" onClick={() => setDeleteConfirmOpen(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header"><h3>Confirm Delete</h3></div>
+            <div className="modal-body">
+              <p>This will permanently delete your account. This action cannot be undone.</p>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-outline" onClick={() => setDeleteConfirmOpen(false)}>Cancel</button>
+              <button className="btn btn-danger" onClick={handleDeleteAccount}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

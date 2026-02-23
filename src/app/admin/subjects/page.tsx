@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { UserRole } from '@/lib/types';
 import { useToast } from '@/components/ToastProvider';
@@ -12,45 +12,81 @@ export default function AdminSubjects() {
   const [loading, setLoading] = useState(true);
   const [editingSubject, setEditingSubject] = useState<{ name: string; courseId: string } | null>(null);
   const [editedName, setEditedName] = useState('');
+  const [subjectToDelete, setSubjectToDelete] = useState<string | null>(null);
   const toast = useToast();
+  const sourceId = useMemo(() => `admin-subjects-${Math.random().toString(36).slice(2)}`, []);
 
-  useEffect(() => {
-    fetch('/api/courses')
-      .then(res => res.json())
-      .then(data => {
-        setCourses(Array.isArray(data) ? data : []);
-        setLoading(false);
-      });
+  const refreshCourses = useCallback(async () => {
+    try {
+      const res = await fetch('/api/courses', { cache: 'no-store' });
+      const data = await res.json();
+      setCourses(Array.isArray(data) ? data : []);
+    } catch (e) {
+      setCourses([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const refreshCourses = async () => {
-    const res = await fetch('/api/courses');
-    const data = await res.json();
-    setCourses(Array.isArray(data) ? data : []);
-  };
+  const broadcastCoursesUpdated = useCallback(() => {
+    try {
+      const bc = new BroadcastChannel('attendance_channel');
+      bc.postMessage({ type: 'courses_updated', silent: true, source: sourceId });
+      bc.close();
+    } catch (e) {}
+  }, [sourceId]);
+
+  useEffect(() => {
+    refreshCourses();
+  }, [refreshCourses]);
+
+  useEffect(() => {
+    const onUpdate = (event: any) => {
+      const msg = event?.detail;
+      if (!msg || msg.type !== 'courses_updated') return;
+      if (msg.source === sourceId) return;
+      refreshCourses();
+    };
+    window.addEventListener('attendance:update', onUpdate as any);
+    return () => window.removeEventListener('attendance:update', onUpdate as any);
+  }, [refreshCourses, sourceId]);
 
   const handleAddSubject = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedCourse || !newSubjectName.trim()) return;
+    const subjectName = newSubjectName.trim();
+    if (!selectedCourse || !subjectName) return;
+    const alreadyExists = (courses.find(c => c.id === selectedCourse)?.subjects || [])
+      .some((s: string) => s.toLowerCase() === subjectName.toLowerCase());
+    if (alreadyExists) {
+      toast.showToast?.('Subject already exists for this course.', 'error');
+      return;
+    }
+
+    const backup = courses;
+    setCourses(prev => prev.map(c =>
+      c.id === selectedCourse
+        ? { ...c, subjects: [...(c.subjects || []), subjectName] }
+        : c
+    ));
+    setNewSubjectName('');
+    toast.showToast?.(`Successfully Added ${subjectName}`, 'success');
 
     try {
       const res = await fetch('/api/subjects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ courseId: selectedCourse, name: newSubjectName })
+        body: JSON.stringify({ courseId: selectedCourse, name: subjectName })
       });
 
       if (res.ok) {
-        await refreshCourses();
-        const courseObj = courses.find(c => c.id === selectedCourse);
-        toast.showToast?.(`Successfully Added ${newSubjectName}`, 'success');
-        setNewSubjectName('');
-        try { new BroadcastChannel('attendance_channel').postMessage({ type: 'courses_updated' }); } catch (e) {}
+        broadcastCoursesUpdated();
       } else {
-        toast.showToast?.('Failed to add subject', 'error');
+        setCourses(backup);
+        toast.showToast?.('Failed to add subject. Reverted.', 'error');
       }
     } catch (err) {
-      toast.showToast('Error adding subject', 'error');
+      setCourses(backup);
+      toast.showToast('Error adding subject. Reverted.', 'error');
     }
   };
 
@@ -67,47 +103,68 @@ export default function AdminSubjects() {
   };
 
   const saveEdit = async () => {
-    if (!editingSubject || !editedName.trim()) return;
+    const nextName = editedName.trim();
+    if (!editingSubject || !nextName) return;
+    const backup = courses;
+    setCourses(prev => prev.map(c => {
+      if (c.id !== editingSubject.courseId) return c;
+      return {
+        ...c,
+        subjects: (c.subjects || []).map((s: string) => s === editingSubject.name ? nextName : s)
+      };
+    }));
+    toast.showToast('Subject updated successfully!', 'success');
+    cancelEdit();
     try {
       const res = await fetch('/api/subjects', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ courseId: editingSubject.courseId, oldName: editingSubject.name, newName: editedName })
+        body: JSON.stringify({ courseId: editingSubject.courseId, oldName: editingSubject.name, newName: nextName })
       });
 
       if (res.ok) {
-        await refreshCourses();
-        toast.showToast('Subject updated successfully!', 'success');
-        cancelEdit();
-        try { new BroadcastChannel('attendance_channel').postMessage({ type: 'courses_updated' }); } catch (e) {}
+        broadcastCoursesUpdated();
       } else {
-        toast.showToast('Failed to update subject', 'error');
+        setCourses(backup);
+        toast.showToast('Failed to update subject. Reverted.', 'error');
       }
     } catch (err) {
-      toast.showToast('Error updating subject', 'error');
+      setCourses(backup);
+      toast.showToast('Error updating subject. Reverted.', 'error');
     }
   };
 
-  const removeSubject = async (name: string) => {
-    if (!selectedCourse) return;
-    if (!confirm(`Delete subject ${name}?`)) return;
+  const removeSubject = (name: string) => {
+    setSubjectToDelete(name);
+  };
+
+  const confirmRemoveSubject = async () => {
+    if (!selectedCourse || !subjectToDelete) return;
+    const deletingName = subjectToDelete;
+    setSubjectToDelete(null);
+    const backup = courses;
+    setCourses(prev => prev.map(c =>
+      c.id === selectedCourse
+        ? { ...c, subjects: (c.subjects || []).filter((s: string) => s !== deletingName) }
+        : c
+    ));
+    toast.showToast?.('Record removed successfully.', 'success');
     try {
       const res = await fetch('/api/subjects', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ courseId: selectedCourse, name })
+        body: JSON.stringify({ courseId: selectedCourse, name: deletingName })
       });
 
       if (res.ok) {
-        await refreshCourses();
-        const courseObj = courses.find(c => c.id === selectedCourse);
-        toast.showToast?.('Record removed successfully.', 'success');
-        try { new BroadcastChannel('attendance_channel').postMessage({ type: 'courses_updated' }); } catch (e) {}
+        broadcastCoursesUpdated();
       } else {
-        toast.showToast?.('Failed to delete subject', 'error');
+        setCourses(backup);
+        toast.showToast?.('Failed to delete subject. Reverted.', 'error');
       }
     } catch (err) {
-      toast.showToast('Error deleting subject', 'error');
+      setCourses(backup);
+      toast.showToast('Error deleting subject. Reverted.', 'error');
     }
   };
 
@@ -186,6 +243,22 @@ export default function AdminSubjects() {
           )}
         </div>
       </div>
+      {subjectToDelete && (
+        <div className="modal-overlay" onClick={() => setSubjectToDelete(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Delete Subject</h3>
+            </div>
+            <div className="modal-body">
+              <p>Are you sure you want to delete <strong>{subjectToDelete}</strong>?</p>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-outline" onClick={() => setSubjectToDelete(null)}>Cancel</button>
+              <button className="btn btn-danger" onClick={confirmRemoveSubject}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useToast } from '@/components/ToastProvider';
 import DashboardLayout from '@/components/DashboardLayout';
 import { UserRole } from '@/lib/types';
@@ -10,14 +10,30 @@ export default function ApproveTeachers() {
   const [loading, setLoading] = useState(true);
   const toast = useToast();
 
-  useEffect(() => {
-    fetch('/api/admin/teachers?status=pending')
+  const loadPending = useCallback(() => {
+    fetch('/api/admin/teachers?status=pending', { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
         setTeachers(data);
         setLoading(false);
       });
   }, []);
+
+  useEffect(() => {
+    loadPending();
+  }, [loadPending]);
+
+  useEffect(() => {
+    const onUpdate = (event: any) => {
+      const msg = event?.detail;
+      if (!msg) return;
+      if (msg.type === 'teachers_updated') {
+        loadPending();
+      }
+    };
+    window.addEventListener('attendance:update', onUpdate as any);
+    return () => window.removeEventListener('attendance:update', onUpdate as any);
+  }, [loadPending]);
 
   const handleAction = async (teacherId: string, action: 'APPROVE' | 'REJECT') => {
     const teacher = teachers.find(t => t.id === teacherId);
@@ -30,6 +46,11 @@ export default function ApproveTeachers() {
 
       if (res.ok) {
         setTeachers(prev => prev.filter(t => t.id !== teacherId));
+        try {
+          const bc = new BroadcastChannel('attendance_channel');
+          bc.postMessage({ type: 'teachers_updated', source: 'admin-approve-teachers' });
+          bc.close();
+        } catch (e) {}
         if (action === 'APPROVE') {
           toast.showToast?.(`Teacher ${teacher?.name || ''} Approved Successfully!`, 'success');
         } else {

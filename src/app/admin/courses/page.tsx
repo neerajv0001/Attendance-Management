@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { UserRole } from '@/lib/types';
 import { useToast } from '@/components/ToastProvider';
@@ -13,45 +13,73 @@ export default function AdminCourses() {
   const [editingName, setEditingName] = useState('');
   const [deletingCourse, setDeletingCourse] = useState<any | null>(null);
   const toast = useToast();
+  const sourceId = useMemo(() => `admin-courses-${Math.random().toString(36).slice(2)}`, []);
+
+  const refreshCourses = useCallback(async () => {
+    try {
+      const res = await fetch('/api/courses', { cache: 'no-store' });
+      const data = await res.json();
+      setCourses(Array.isArray(data) ? data : []);
+    } catch (e) {
+      setCourses([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const broadcastCoursesUpdated = useCallback((name?: string) => {
+    try {
+      const bc = new BroadcastChannel('attendance_channel');
+      bc.postMessage({ type: 'courses_updated', name, silent: true, source: sourceId });
+      bc.close();
+    } catch (e) {}
+  }, [sourceId]);
 
   useEffect(() => {
-    fetch('/api/courses')
-      .then(res => res.json())
-      .then(data => {
-        setCourses(Array.isArray(data) ? data : []);
-        setLoading(false);
-      });
-  }, []);
+    refreshCourses();
+  }, [refreshCourses]);
+
+  useEffect(() => {
+    const onUpdate = (event: any) => {
+      const msg = event?.detail;
+      if (!msg || msg.type !== 'courses_updated') return;
+      if (msg.source === sourceId) return;
+      refreshCourses();
+    };
+    window.addEventListener('attendance:update', onUpdate as any);
+    return () => window.removeEventListener('attendance:update', onUpdate as any);
+  }, [refreshCourses, sourceId]);
 
   const handleAddCourse = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCourseName.trim()) return;
+    const courseName = newCourseName.trim();
+    if (!courseName) return;
     // optimistic UI: add locally first
     const tempId = `temp-${Date.now()}`;
-    const tempCourse = { id: tempId, name: newCourseName };
+    const tempCourse = { id: tempId, name: courseName };
     setCourses(prev => [...prev, tempCourse]);
     setNewCourseName('');
-    // show no loading toast; we'll show final toast on result
     try {
       const res = await fetch('/api/courses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newCourseName })
+        body: JSON.stringify({ name: courseName })
       });
       const payload = await res.json();
-        if (res.ok) {
+      if (res.ok) {
         // replace temp item with server item (if server returned it)
         setCourses(prev => prev.map(c => c.id === tempId ? (payload && payload.id ? payload : { ...c, id: payload?.id || c.id, name: payload?.name || c.name }) : c));
-        toast.showToast?.(`Successfully Added ${payload?.name || newCourseName}`, 'success');
-        try { new BroadcastChannel('attendance_channel').postMessage({ type: 'courses_updated', name: payload?.name || newCourseName }); } catch (e) {}
+        toast.showToast?.(`Successfully Added ${courseName}`, 'success');
+        await refreshCourses();
+        broadcastCoursesUpdated(payload?.name || courseName);
       } else {
         // remove optimistic item
         setCourses(prev => prev.filter(c => c.id !== tempId));
-        toast.showToast?.(payload?.error || 'Failed to add course', 'error');
+        toast.showToast?.(payload?.error || `Failed to add ${courseName}. Reverted.`, 'error');
       }
     } catch (err: any) {
       setCourses(prev => prev.filter(c => c.id !== tempId));
-      toast.showToast?.(err?.message || 'Error adding course', 'error');
+      toast.showToast?.(err?.message || `Error adding ${courseName}. Reverted.`, 'error');
     }
   };
 
@@ -66,60 +94,64 @@ export default function AdminCourses() {
   };
 
   const handleSaveEdit = async (id: string) => {
-    if (!editingName.trim()) return;
-    // no loading toast; show final result
+    const nextName = editingName.trim();
+    if (!nextName) return;
+    const backup = courses;
+    setCourses(prev => prev.map(c => c.id === id ? { ...c, name: nextName } : c));
+    setEditingId(null);
+    setEditingName('');
     try {
       const res = await fetch('/api/courses', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, name: editingName })
+        body: JSON.stringify({ id, name: nextName })
       });
 
       if (res.ok) {
-        const updated = await res.json();
-        setCourses(courses.map(c => c.id === id ? { ...c, name: editingName } : c));
-        setEditingId(null);
-        setEditingName('');
         toast.showToast?.('Course updated successfully!', 'success');
-        try { new BroadcastChannel('attendance_channel').postMessage({ type: 'courses_updated', name: editingName }); } catch (e) {}
+        await refreshCourses();
+        broadcastCoursesUpdated(nextName);
       } else {
-        toast.showToast?.('Failed to update course', 'error');
+        setCourses(backup);
+        toast.showToast?.('Failed to update course. Reverted.', 'error');
       }
     } catch (err) {
-      toast.showToast?.('Error updating course', 'error');
+      setCourses(backup);
+      toast.showToast?.('Error updating course. Reverted.', 'error');
     }
   };
 
-  const handleRemove = async (course: any) => {
+  const handleRemove = (course: any) => {
     setDeletingCourse(course);
   };
 
   const confirmDeleteCourse = async () => {
     if (!deletingCourse) return;
+    const courseToDelete = deletingCourse;
+    setDeletingCourse(null);
     // optimistic remove: remove locally first, keep backup
     const backup = courses;
-    setCourses(prev => prev.filter(c => c.id !== deletingCourse.id));
+    setCourses(prev => prev.filter(c => c.id !== courseToDelete.id));
     // no loading toast; remove optimistically and show final toast
     try {
       const res = await fetch('/api/courses', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: deletingCourse.id })
+        body: JSON.stringify({ id: courseToDelete.id })
       });
       const payload = await res.json();
       if (res.ok) {
-        toast.showToast?.(`Course ${deletingCourse.name} removed successfully!`, 'success');
-        try { new BroadcastChannel('attendance_channel').postMessage({ type: 'courses_updated', name: deletingCourse.name }); } catch (e) {}
+        toast.showToast?.(`Course ${courseToDelete.name} removed successfully!`, 'success');
+        await refreshCourses();
+        broadcastCoursesUpdated(courseToDelete.name);
       } else {
         // revert on failure
         setCourses(backup);
-        toast.showToast?.(payload?.error || 'Failed to remove course', 'error');
+        toast.showToast?.(payload?.error || `Failed to remove ${courseToDelete.name}. Reverted.`, 'error');
       }
     } catch (err: any) {
       setCourses(backup);
-      toast.showToast?.(err?.message || 'Error removing course', 'error');
-    } finally {
-      setDeletingCourse(null);
+      toast.showToast?.(err?.message || `Error removing ${courseToDelete.name}. Reverted.`, 'error');
     }
   };
 
@@ -178,7 +210,6 @@ export default function AdminCourses() {
           <p>No courses found.</p>
         )}
       </div>
-      {/* Delete confirmation modal */}
       {deletingCourse && (
         <div className="modal-overlay" onClick={() => setDeletingCourse(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>

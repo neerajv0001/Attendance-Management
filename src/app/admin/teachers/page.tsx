@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/components/ToastProvider';
 import DashboardLayout from '@/components/DashboardLayout';
 import { UserRole } from '@/lib/types';
@@ -11,14 +11,30 @@ export default function AdminTeachers() {
   const [viewing, setViewing] = useState<any | null>(null);
   const toast = useToast();
 
-  useEffect(() => {
-    fetch('/api/admin/teachers?status=approved')
+  const loadTeachers = useCallback(() => {
+    fetch('/api/admin/teachers?status=approved', { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
         setTeachers(data);
         setLoading(false);
       });
   }, []);
+
+  useEffect(() => {
+    loadTeachers();
+  }, [loadTeachers]);
+
+  useEffect(() => {
+    const onUpdate = (event: any) => {
+      const msg = event?.detail;
+      if (!msg) return;
+      if (msg.type === 'teachers_updated') {
+        loadTeachers();
+      }
+    };
+    window.addEventListener('attendance:update', onUpdate as any);
+    return () => window.removeEventListener('attendance:update', onUpdate as any);
+  }, [loadTeachers]);
 
   if (loading) return <div>Loading...</div>;
 
@@ -76,6 +92,11 @@ export default function AdminTeachers() {
                   const res = await fetch('/api/admin/teachers', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: viewing.id }) });
                   if (res.ok) {
                     setTeachers(teachers.filter(t => t.id !== viewing.id));
+                    try {
+                      const bc = new BroadcastChannel('attendance_channel');
+                      bc.postMessage({ type: 'teachers_updated', source: 'admin-teachers' });
+                      bc.close();
+                    } catch (e) {}
                     setViewing(null);
                     toast.showToast?.('Record removed successfully.', 'success');
                   } else {

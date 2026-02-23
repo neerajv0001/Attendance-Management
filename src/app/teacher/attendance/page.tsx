@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { UserRole } from '@/lib/types';
 import { useToast } from '@/components/ToastProvider';
@@ -14,10 +14,22 @@ export default function TeacherAttendance() {
   const [selectedClass, setSelectedClass] = useState('');
   const toast = useToast();
 
+  const refreshCourses = useCallback(async () => {
+    try {
+      const res = await fetch('/api/courses', { cache: 'no-store' });
+      const data = await res.json();
+      const next = Array.isArray(data) ? data : [];
+      setCourses(next);
+      if (selectedClass && !next.some((c: any) => c.name.trim() === selectedClass)) {
+        setSelectedClass('');
+      }
+    } catch (e) {}
+  }, [selectedClass]);
+
   useEffect(() => {
     Promise.all([
-      fetch('/api/students').then(r => r.json()),
-      fetch('/api/courses').then(r => r.json())
+      fetch('/api/students', { cache: 'no-store' }).then(r => r.json()),
+      fetch('/api/courses', { cache: 'no-store' }).then(r => r.json())
     ]).then(([studs, courses]) => {
       setStudents(studs || []);
       setCourses(Array.isArray(courses) ? courses : []);
@@ -28,6 +40,16 @@ export default function TeacherAttendance() {
     });
   }, []);
 
+  useEffect(() => {
+    const onUpdate = (event: any) => {
+      const msg = event?.detail;
+      if (!msg || msg.type !== 'courses_updated') return;
+      refreshCourses();
+    };
+    window.addEventListener('attendance:update', onUpdate as any);
+    return () => window.removeEventListener('attendance:update', onUpdate as any);
+  }, [refreshCourses]);
+
   // initialize date on client to avoid SSR hydration mismatch
   useEffect(() => {
     if (!date) setDate(new Date().toISOString().split('T')[0]);
@@ -36,7 +58,7 @@ export default function TeacherAttendance() {
   // Load attendance for selected date
   useEffect(() => {
     if (!date) return;
-    fetch('/api/attendance')
+    fetch('/api/attendance', { cache: 'no-store' })
       .then(r => r.json())
         .then((records: any[]) => {
           const map: Record<string, string> = {};
@@ -64,7 +86,7 @@ export default function TeacherAttendance() {
       // broadcast and refresh records to reflect latest saved state
       try { new BroadcastChannel('attendance_channel').postMessage({ type: 'attendance_saved', date }); } catch (e) {}
       try {
-        const recRes = await fetch('/api/attendance');
+        const recRes = await fetch('/api/attendance', { cache: 'no-store' });
         const all = await recRes.json();
         const map: Record<string, string> = {};
         all.filter((r: any) => r.date === date).forEach((r: any) => { map[r.studentId] = r.status; });

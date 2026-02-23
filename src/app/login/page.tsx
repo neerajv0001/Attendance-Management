@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useToast } from '@/components/ToastProvider';
-import { toast as hotToast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
@@ -22,7 +21,7 @@ export default function LoginPage() {
         try {
           const o = JSON.parse(out);
           if (o && o.message) {
-            toast.showToast?.(o.message, 'info', '👋');
+            toast.showToast?.(o.message, 'info');
           }
         } catch (e) {}
         try { localStorage.removeItem('justLoggedOut'); } catch {}
@@ -30,7 +29,7 @@ export default function LoginPage() {
     } catch (e) {
       // ignore
     }
-  }, []);
+  }, [toast]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,7 +49,7 @@ export default function LoginPage() {
         throw new Error(data.error || 'Login failed');
       }
 
-      // Redirect based on role — persist a small flag so dashboard can show welcome toast after redirect
+      // Redirect based on role and persist a small flag so dashboard can show welcome toast after redirect
       try {
         localStorage.setItem('justLoggedIn', JSON.stringify({ name: data.user.name, role: data.user.role }));
       } catch (e) {}
@@ -66,78 +65,86 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <div className="login-logo">
-          <div style={{ fontSize: '48px', marginBottom: '12px' }}>📚</div>
-          <h1>Attendance Pro</h1>
-          <p>Welcome back! Please sign in to continue.</p>
+    <div className="auth-shell">
+      <section className="auth-left-panel">
+        <div className="auth-left-glow auth-left-glow-a" />
+        <div className="auth-left-glow auth-left-glow-b" />
+        <div className="auth-left-content">
+          <p className="auth-kicker">Attendance Pro</p>
+          <h1>Welcome!</h1>
+          <p>Secure access for admins, teachers, and students.</p>
         </div>
-        
-        {error && (
-          <div className="alert alert-danger" style={{ marginBottom: '20px' }}>
-            <span>⚠️</span>
-            {error}
-          </div>
-        )}
+      </section>
 
-        <form onSubmit={handleLogin}>
-          <div className="input-group">
-            <label>Username / Email / Student ID</label>
-            <input 
-              type="text" 
-              className="form-control" 
-              value={username} 
-              onChange={(e) => setUsername(e.target.value)} 
-              required 
-              placeholder="Enter your ID"
-            />
+      <section className="auth-right-panel">
+        <div className="auth-card">
+          <div className="auth-tabs" role="tablist" aria-label="Auth navigation">
+            <a href="/login" className="auth-tab active" aria-current="page">Login</a>
+            <a href="/register" className="auth-tab">Register</a>
           </div>
 
-          <div className="input-group">
-            <label>Password</label>
-            <div className="password-input-wrapper">
-              <input 
-                type={showPassword ? 'text' : 'password'}
-                className="form-control" 
-                value={password} 
-                onChange={(e) => setPassword(e.target.value)} 
-                required 
-                placeholder="Enter your password"
-                style={{ paddingRight: '45px' }}
-              />
-              <button
-                type="button"
-                className="password-toggle"
-                onClick={() => setShowPassword(!showPassword)}
-                tabIndex={-1}
-              >
-                {showPassword ? '🙈' : '👁️'}
-              </button>
+          <div className="login-logo auth-logo">
+            <h1>Attendance Pro</h1>
+            <p>Welcome back. Sign in to continue.</p>
+          </div>
+
+          {error && (
+            <div className="alert alert-danger auth-alert">
+              <span>!</span>
+              {error}
             </div>
-          </div>
+          )}
 
-          <button type="submit" className="btn btn-lg" disabled={loading} style={{ width: '100%', marginTop: '10px' }}>
-            {loading ? (
-              <>
-                <span className="spinner" style={{ width: '20px', height: '20px', borderWidth: '2px', marginRight: '8px' }}></span>
-                Signing in...
-              </>
-            ) : (
-              'Sign In'
-            )}
-          </button>
-        </form>
+          <form onSubmit={handleLogin}>
+            <div className="input-group auth-input-group">
+              <label>Username, Email, or Student ID</label>
+              <input
+                type="text"
+                className="form-control auth-field"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+                placeholder="Enter username, email, or student ID"
+              />
+            </div>
 
-        <div style={{ marginTop: '24px', textAlign: 'center' }}>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-            Are you a teacher?{' '}
-            <a href="/register" style={{ color: 'var(--accent-color)', fontWeight: '600', textDecoration: 'none' }}>
-              Register Here
-            </a>
-          </p>
+            <div className="input-group auth-input-group">
+              <label>Password</label>
+              <div className="password-input-wrapper">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  className="form-control auth-field"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  placeholder="Enter your password"
+                  style={{ paddingRight: '60px' }}
+                />
+                <button
+                  type="button"
+                  className="password-toggle auth-password-toggle"
+                  onClick={() => setShowPassword(!showPassword)}
+                  tabIndex={-1}
+                >
+                  {showPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
+            </div>
+
+            <button type="submit" className="btn btn-lg auth-submit" disabled={loading} style={{ width: '100%', marginTop: '10px' }}>
+              {loading ? (
+                <>
+                  <span className="spinner" style={{ width: '20px', height: '20px', borderWidth: '2px', marginRight: '8px' }}></span>
+                  Signing in...
+                </>
+              ) : (
+                'Sign In'
+              )}
+            </button>
+          </form>
+
         </div>
-      </div>
+      </section>
     </div>
   );
 }

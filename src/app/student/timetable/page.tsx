@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { UserRole } from '@/lib/types';
 
@@ -8,8 +8,8 @@ export default function StudentTimetable() {
   const [timetable, setTimetable] = useState<Record<string, any[]>>({});
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetch('/api/timetable')
+  const loadTimetable = useCallback(() => {
+    fetch('/api/timetable', { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
@@ -23,6 +23,22 @@ export default function StudentTimetable() {
         setLoading(false);
       });
   }, []);
+
+  useEffect(() => {
+    loadTimetable();
+  }, [loadTimetable]);
+
+  useEffect(() => {
+    const onUpdate = (event: any) => {
+      const msg = event?.detail;
+      if (!msg) return;
+      if (msg.type === 'timetable_updated') {
+        loadTimetable();
+      }
+    };
+    window.addEventListener('attendance:update', onUpdate as any);
+    return () => window.removeEventListener('attendance:update', onUpdate as any);
+  }, [loadTimetable]);
 
   if (loading) return <div>Loading...</div>;
 
