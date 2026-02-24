@@ -33,12 +33,30 @@ export default function StudentAttendanceHistory() {
     const onUpdate = (event: any) => {
       const msg = event?.detail;
       if (!msg) return;
-      if (msg.type === 'attendance_saved') {
+      if (msg.type === 'attendance_saved' || msg.type === 'teachers_updated') {
         loadHistory();
       }
     };
     window.addEventListener('attendance:update', onUpdate as any);
-    return () => window.removeEventListener('attendance:update', onUpdate as any);
+
+    let bc: BroadcastChannel | null = null;
+    try {
+      bc = new BroadcastChannel('attendance_channel');
+      bc.onmessage = (event) => {
+        const msg = event?.data;
+        if (!msg) return;
+        if (msg.type === 'attendance_saved' || msg.type === 'teachers_updated') {
+          loadHistory();
+        }
+      };
+    } catch (e) {
+      bc = null;
+    }
+
+    return () => {
+      window.removeEventListener('attendance:update', onUpdate as any);
+      try { if (bc) bc.close(); } catch (e) {}
+    };
   }, [loadHistory]);
 
   const todayKey = useMemo(() => new Date().toISOString().split('T')[0], []);

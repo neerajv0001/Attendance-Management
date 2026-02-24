@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { UserRole } from '@/lib/types';
 import Link from 'next/link';
@@ -10,9 +10,15 @@ export default function TeacherDashboard() {
     totalStudents: 0,
     todayPresentCount: 0,
     todayAbsentCount: 0,
+    weekPresentCount: 0,
+    weekAbsentCount: 0,
   });
   const [todayLectures, setTodayLectures] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const currentWeekday = useMemo(
+    () => new Date().toLocaleDateString('en-US', { weekday: 'long' }),
+    []
+  );
 
   const loadStats = useCallback(async (silent = false) => {
     try {
@@ -25,8 +31,22 @@ export default function TeacherDashboard() {
       const studentList = Array.isArray(students) ? students : [];
       const studentIds = new Set(studentList.map((s: any) => s.id));
       const todayKey = new Date().toISOString().split('T')[0];
-      const todayAttendance = (Array.isArray(attendance) ? attendance : []).filter(
+      const attendanceList = Array.isArray(attendance) ? attendance : [];
+      const todayAttendance = attendanceList.filter(
         (a: any) => a.date === todayKey && studentIds.has(a.studentId)
+      );
+      const now = new Date();
+      const day = now.getDay(); // 0 = Sunday, 1 = Monday
+      const diffToMonday = day === 0 ? -6 : 1 - day;
+      const weekStartDate = new Date(now);
+      weekStartDate.setDate(now.getDate() + diffToMonday);
+      const weekStartKey = weekStartDate.toISOString().split('T')[0];
+      const weekEndDate = new Date(weekStartDate);
+      weekEndDate.setDate(weekStartDate.getDate() + 5); // Saturday
+      const weekEndKey = weekEndDate.toISOString().split('T')[0];
+
+      const weekAttendance = attendanceList.filter(
+        (a: any) => a.date >= weekStartKey && a.date <= weekEndKey && studentIds.has(a.studentId)
       );
 
       const statusByStudent = new Map<string, 'PRESENT' | 'ABSENT'>();
@@ -39,10 +59,23 @@ export default function TeacherDashboard() {
       const todayPresent = Array.from(statusByStudent.values()).filter((s) => s === 'PRESENT').length;
       const todayAbsent = Array.from(statusByStudent.values()).filter((s) => s === 'ABSENT').length;
 
+      // Weekly count should not repeat the same student multiple times in the same day.
+      // Keep one status per student per day (latest wins), then sum whole week's day-wise statuses.
+      const dayWiseStatus = new Map<string, 'PRESENT' | 'ABSENT'>();
+      for (const rec of weekAttendance) {
+        if (!rec?.studentId || (rec?.status !== 'PRESENT' && rec?.status !== 'ABSENT')) continue;
+        dayWiseStatus.set(`${rec.date}__${rec.studentId}`, rec.status);
+      }
+
+      const weekPresent = Array.from(dayWiseStatus.values()).filter((s) => s === 'PRESENT').length;
+      const weekAbsent = Array.from(dayWiseStatus.values()).filter((s) => s === 'ABSENT').length;
+
       setStats({
         totalStudents: studentList.length,
         todayPresentCount: todayPresent,
         todayAbsentCount: todayAbsent,
+        weekPresentCount: weekPresent,
+        weekAbsentCount: weekAbsent,
       });
 
       const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
@@ -87,12 +120,28 @@ export default function TeacherDashboard() {
 
   return (
     <DashboardLayout role={UserRole.TEACHER}>
-      <div className="page-header">
-        <h1>Teacher Dashboard</h1>
-        <p>Manage your students and track attendance efficiently.</p>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+        <div>
+          <h1>Teacher Dashboard</h1>
+          <p>Manage your students and track attendance efficiently.</p>
+        </div>
+        <div
+          style={{
+            alignSelf: 'flex-start',
+            padding: '6px 12px',
+            borderRadius: 999,
+            background: '#e8f1ff',
+            color: '#003366',
+            fontWeight: 700,
+            fontSize: '0.82rem',
+            border: '1px solid #bfdbfe',
+          }}
+        >
+          {currentWeekday}
+        </div>
       </div>
 
-      <div className="grid-3" style={{ marginBottom: '32px' }}>
+      <div className="grid-4" style={{ marginBottom: '32px' }}>
         <div className="stat-card info">
           <div className="stat-icon info">👨‍🎓</div>
           <div>
@@ -116,6 +165,17 @@ export default function TeacherDashboard() {
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '4px' }}>Today Absent</p>
             <p style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--danger-color)' }}>{stats.todayAbsentCount}</p>
             <p style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>Out of {stats.totalStudents} students</p>
+          </div>
+        </div>
+
+        <div className="stat-card warning">
+          <div className="stat-icon warning">📅</div>
+          <div>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '4px' }}>This Week</p>
+            <p style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--primary-color)' }}>
+              P: {stats.weekPresentCount} | A: {stats.weekAbsentCount}
+            </p>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>Monday to Saturday</p>
           </div>
         </div>
       </div>

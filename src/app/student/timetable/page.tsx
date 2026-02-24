@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { UserRole } from '@/lib/types';
 
@@ -13,6 +13,7 @@ type TimetableItem = {
   endTime: string;
   teacherId?: string;
   teacherName?: string;
+  isLunchBreak?: boolean;
   isCancelled?: boolean;
 };
 
@@ -22,7 +23,7 @@ export default function StudentTimetable() {
   const [loading, setLoading] = useState(true);
 
   const loadTimetable = useCallback(() => {
-    fetch('/api/timetable?scope=all', { cache: 'no-store' })
+    fetch('/api/timetable', { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
@@ -48,6 +49,16 @@ export default function StudentTimetable() {
   useEffect(() => {
     loadTimetable();
   }, [loadTimetable]);
+
+  const selectedDayItems = useMemo(() => timetable[selectedDay] || [], [timetable, selectedDay]);
+  const selectedDayLunchBreak = useMemo(
+    () => selectedDayItems.find((item) => item.isLunchBreak),
+    [selectedDayItems]
+  );
+  const selectedDayLectures = useMemo(
+    () => selectedDayItems.filter((item) => !item.isLunchBreak),
+    [selectedDayItems]
+  );
 
   useEffect(() => {
     const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
@@ -93,54 +104,69 @@ export default function StudentTimetable() {
       </div>
       
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
-        {Object.entries(timetable).map(([day, items]) => (
-          day === selectedDay && (
-            <div className="card" key={day} style={{ background: '#fff', borderTop: '4px solid #0056b3' }}>
-              <h3 style={{ borderBottom: '1px solid #eee', paddingBottom: '10px', marginBottom: '10px' }}>{day}</h3>
-              {(items || []).length === 0 ? (
-                <p style={{ color: 'var(--text-secondary)' }}>No classes for {day}.</p>
-              ) : (items || []).map((item: TimetableItem) => (
-                <div
-                  key={item.id}
-                  style={{
-                    marginBottom: '10px',
-                    padding: '10px',
-                    background: item.isCancelled ? '#fff1f2' : '#f8f9fa',
-                    borderRadius: '4px',
-                    border: item.isCancelled ? '1px solid #fecaca' : '1px solid transparent',
-                  }}
-                >
-                  <div style={{ fontWeight: 'bold', color: '#003366', textDecoration: item.isCancelled ? 'line-through' : 'none' }}>
-                    {item.subject}
-                  </div>
-                  <div style={{ fontSize: '0.9rem', color: '#666' }}>{item.startTime} - {item.endTime}</div>
-                  <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                    Teacher: {item.teacherName || item.teacherId || 'N/A'}
-                  </div>
-                  {item.isCancelled && (
-                    <div style={{ marginTop: 6 }}>
-                      <span
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          padding: '3px 10px',
-                          borderRadius: 999,
-                          fontSize: '0.75rem',
-                          fontWeight: 700,
-                          background: '#fee2e2',
-                          color: '#b91c1c',
-                          border: '1px solid #fca5a5',
-                        }}
-                      >
-                        Cancelled
-                      </span>
-                    </div>
-                  )}
-                </div>
-              ))}
+        <div className="card" style={{ background: '#fff', borderTop: '4px solid #0056b3' }}>
+          <h3 style={{ borderBottom: '1px solid #eee', paddingBottom: '10px', marginBottom: '10px' }}>{selectedDay}</h3>
+          {selectedDayLunchBreak && (
+            <div
+              style={{
+                marginBottom: 12,
+                padding: '10px 12px',
+                borderRadius: 10,
+                background: 'linear-gradient(135deg, #dcfce7, #bbf7d0)',
+                border: '1px solid #86efac',
+                boxShadow: '0 0 0 2px rgba(34,197,94,0.15), 0 8px 20px rgba(34,197,94,0.15)',
+              }}
+            >
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#166534', letterSpacing: 0.4 }}>LUNCH BREAK</div>
+              <div style={{ fontSize: '1rem', fontWeight: 800, color: '#14532d' }}>
+                {selectedDayLunchBreak.startTime} - {selectedDayLunchBreak.endTime}
+              </div>
             </div>
-          )
-        ))}
+          )}
+          {selectedDayLectures.length === 0 ? (
+            <p style={{ color: 'var(--text-secondary)' }}>No classes for {selectedDay}.</p>
+          ) : selectedDayLectures.map((item: TimetableItem) => (
+            <div
+              key={item.id}
+              style={{
+                marginBottom: '10px',
+                padding: '10px',
+                background: item.isCancelled ? '#fff1f2' : '#f8f9fa',
+                borderRadius: '4px',
+                border: item.isCancelled ? '1px solid #fecaca' : '1px solid transparent',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                <div style={{ fontWeight: 'bold', color: '#003366', textDecoration: item.isCancelled ? 'line-through' : 'none' }}>
+                  {item.subject}
+                </div>
+              </div>
+              <div style={{ fontSize: '0.9rem', color: '#666' }}>{item.startTime} - {item.endTime}</div>
+              <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                Teacher: {item.teacherName || item.teacherId || 'N/A'}
+              </div>
+              {item.isCancelled && (
+                <div style={{ marginTop: 6 }}>
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      padding: '3px 10px',
+                      borderRadius: 999,
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      background: '#fee2e2',
+                      color: '#b91c1c',
+                      border: '1px solid #fca5a5',
+                    }}
+                  >
+                    Cancelled
+                  </span>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
       
       {Object.values(timetable).every(items => items && items.length === 0) && (

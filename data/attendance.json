@@ -2199,64 +2199,168 @@
     "date": "2026-02-24",
     "studentId": "STU2026848",
     "status": "PRESENT",
-    "teacherId": "teacher-1771864876446",
-    "subject": "Fundamental Of GIS",
-    "teacherName": "Soni Singh"
+    "teacherId": "teacher-1771902560494",
+    "subject": "IT Act & Cyber Law",
+    "teacherName": "Deore Dnyneshwar"
+  },
+  {
+    "date": "2026-02-24",
+    "studentId": "STU2026241",
+    "status": "ABSENT",
+    "teacherId": "teacher-1771902560494",
+    "subject": "IT Act & Cyber Law",
+    "teacherName": "Deore Dnyneshwar"
+  },
+  {
+    "date": "2026-02-24",
+    "studentId": "STU2026502",
+    "status": "ABSENT",
+    "teacherId": "teacher-1771902560494",
+    "subject": "IT Act & Cyber Law",
+    "teacherName": "Deore Dnyneshwar"
+  },
+  {
+    "date": "2026-02-24",
+    "studentId": "STU2026807",
+    "status": "ABSENT",
+    "teacherId": "teacher-1771902560494",
+    "subject": "IT Act & Cyber Law",
+    "teacherName": "Deore Dnyneshwar"
+  },
+  {
+    "date": "2026-02-24",
+    "studentId": "STU2026848",
+    "status": "ABSENT",
+    "teacherId": "teacher-1771915641928",
+    "subject": "Information Security",
+    "teacherName": "Sarita"
   },
   {
     "date": "2026-02-24",
     "studentId": "STU2026241",
     "status": "PRESENT",
-    "teacherId": "teacher-1771864876446",
-    "subject": "Fundamental Of GIS",
-    "teacherName": "Soni Singh"
+    "teacherId": "teacher-1771915641928",
+    "subject": "Information Security",
+    "teacherName": "Sarita"
   },
   {
     "date": "2026-02-24",
     "studentId": "STU2026502",
     "status": "PRESENT",
-    "teacherId": "teacher-1771864876446",
-    "subject": "Fundamental Of GIS",
-    "teacherName": "Soni Singh"
+    "teacherId": "teacher-1771915641928",
+    "subject": "Information Security",
+    "teacherName": "Sarita"
   },
   {
     "date": "2026-02-24",
     "studentId": "STU2026807",
     "status": "PRESENT",
-    "teacherId": "teacher-1771864876446",
-    "subject": "Fundamental Of GIS",
-    "teacherName": "Soni Singh"
+    "teacherId": "teacher-1771915641928",
+    "subject": "Information Security",
+    "teacherName": "Sarita"
+  },
+  {
+    "date": "2026-02-24",
+    "studentId": "STU2026241",
+    "status": "PRESENT",
+    "teacherId": "teacher-1771413429408",
+    "subject": "Software Testing & Quality Assurance",
+    "teacherName": "vanita sharma"
   },
   {
     "date": "2026-02-24",
     "studentId": "STU2026848",
     "status": "PRESENT",
-    "teacherId": "teacher-1771902560494",
-    "subject": "IT Act & Cyber Law",
-    "teacherName": "Deore Dnyneshwar"
+    "teacherId": "teacher-1771864876446",
+    "subject": "Fundamental Of GIS",
+    "teacherName": "Soni Singh"
   },
   {
     "date": "2026-02-24",
     "studentId": "STU2026241",
-    "status": "ABSENT",
-    "teacherId": "teacher-1771902560494",
-    "subject": "IT Act & Cyber Law",
-    "teacherName": "Deore Dnyneshwar"
+    "status": "PRESENT",
+    "teacherId": "teacher-1771864876446",
+    "subject": "Fundamental Of GIS",
+    "teacherName": "Soni Singh"
   },
   {
     "date": "2026-02-24",
     "studentId": "STU2026502",
-    "status": "ABSENT",
-    "teacherId": "teacher-1771902560494",
-    "subject": "IT Act & Cyber Law",
-    "teacherName": "Deore Dnyneshwar"
+    "status": "PRESENT",
+    "teacherId": "teacher-1771864876446",
+    "subject": "Fundamental Of GIS",
+    "teacherName": "Soni Singh"
   },
   {
     "date": "2026-02-24",
     "studentId": "STU2026807",
     "status": "ABSENT",
-    "teacherId": "teacher-1771902560494",
-    "subject": "IT Act & Cyber Law",
-    "teacherName": "Deore Dnyneshwar"
+    "teacherId": "teacher-1771864876446",
+    "subject": "Fundamental Of GIS",
+    "teacherName": "Soni Singh"
+  },
+  {
+    "date": "2026-02-23",
+    "studentId": "STU2026932",
+    "status": "PRESENT",
+    "teacherId": "teacher-1771413429408",
+    "subject": "Software Testing & Quality Assurance",
+    "teacherName": "vanita sharma"
+  },
+  {
+    "date": "2026-02-23",
+    "studentId": "STU2026848",
+    "status": "PRESENT",
+    "teacherId": "teacher-1771413429408",
+    "subject": "Software Testing & Quality Assurance",
+    "teacherName": "vanita sharma"
+  },
+  {
+    "date": "2026-02-23",
+    "studentId": "STU2026502",
+    "status": "PRESENT",
+    "teacherId": "teacher-1771413429408",
+    "subject": "Software Testing & Quality Assurance",
+    "teacherName": "vanita sharma"
+  },
+  {
+    "date": "2026-02-23",
+    "studentId": "STU2026807",
+    "status": "PRESENT",
+    "teacherId": "teacher-1771413429408",
+    "subject": "Software Testing & Quality Assurance",
+    "teacherName": "vanita sharma"
+  },
+  {
+    "date": "2026-02-24",
+    "studentId": "STU2026932",
+    "status": "ABSENT",
+    "teacherId": "teacher-1771413429408",
+    "subject": "Software Testing & Quality Assurance",
+    "teacherName": "vanita sharma"
+  },
+  {
+    "date": "2026-02-24",
+    "studentId": "STU2026848",
+    "status": "PRESENT",
+    "teacherId": "teacher-1771413429408",
+    "subject": "Software Testing & Quality Assurance",
+    "teacherName": "vanita sharma"
+  },
+  {
+    "date": "2026-02-24",
+    "studentId": "STU2026502",
+    "status": "PRESENT",
+    "teacherId": "teacher-1771413429408",
+    "subject": "Software Testing & Quality Assurance",
+    "teacherName": "vanita sharma"
+  },
+  {
+    "date": "2026-02-24",
+    "studentId": "STU2026807",
+    "status": "PRESENT",
+    "teacherId": "teacher-1771413429408",
+    "subject": "Software Testing & Quality Assurance",
+    "teacherName": "vanita sharma"
   }
 ]

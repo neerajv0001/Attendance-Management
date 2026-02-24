@@ -6,6 +6,7 @@
     "startTime": "01:10",
     "endTime": "01:50",
     "teacherId": "teacher-1771413429408",
+    "isLunchBreak": false,
     "isCancelled": false
   },
   {
@@ -15,6 +16,7 @@
     "startTime": "01:50",
     "endTime": "02:30",
     "teacherId": "teacher-1771413429408",
+    "isLunchBreak": false,
     "isCancelled": false
   },
   {
@@ -24,6 +26,7 @@
     "startTime": "02:30",
     "endTime": "03:10",
     "teacherId": "teacher-1771413429408",
+    "isLunchBreak": false,
     "isCancelled": false
   },
   {
@@ -33,6 +36,7 @@
     "startTime": "02:30",
     "endTime": "03:10",
     "teacherId": "teacher-1771413429408",
+    "isLunchBreak": false,
     "isCancelled": false
   },
   {
@@ -42,6 +46,7 @@
     "startTime": "01:50",
     "endTime": "02:30",
     "teacherId": "teacher-1771902560494",
+    "isLunchBreak": false,
     "isCancelled": false
   },
   {
@@ -51,8 +56,27 @@
     "startTime": "02:30",
     "endTime": "03:10",
     "teacherId": "teacher-1771902560494",
-    "isCancelled": true,
-    "cancelledAt": "2026-02-24T03:59:55.288Z",
-    "cancelReason": "Cancelled by teacher"
+    "isLunchBreak": false,
+    "isCancelled": false
+  },
+  {
+    "id": "tt-1771915901401",
+    "subject": "Information Security",
+    "day": "Tuesday",
+    "startTime": "01:10",
+    "endTime": "01:50",
+    "teacherId": "teacher-1771915641928",
+    "isLunchBreak": false,
+    "isCancelled": false
+  },
+  {
+    "id": "tt-1771916495135",
+    "subject": "Fundamental Of GIS",
+    "day": "Tuesday",
+    "startTime": "03:30",
+    "endTime": "04:10",
+    "teacherId": "teacher-1771864876446",
+    "isLunchBreak": false,
+    "isCancelled": false
   }
 ]

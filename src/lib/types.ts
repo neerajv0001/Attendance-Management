@@ -18,6 +18,9 @@ export interface User {
   experience?: string; // For teachers
   department?: string; // For students (Course name)
   courseId?: string; // For teachers (selected course id)
+  lunchBreakStart?: string; // For teachers (HH:MM)
+  lunchBreakEnd?: string; // For teachers (HH:MM)
+  lunchBreakOverrides?: Record<string, { startTime: string; endTime: string }>; // Per-day override
   createdAt: string;
 }
 
@@ -42,6 +45,7 @@ export interface TimetableEntry {
   startTime: string;
   endTime: string;
   teacherId: string;
+  isLunchBreak?: boolean;
   isCancelled?: boolean;
   cancelledAt?: string;
   cancelReason?: string;

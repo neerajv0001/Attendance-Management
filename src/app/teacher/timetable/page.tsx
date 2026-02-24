@@ -13,6 +13,7 @@ type TimetableEntry = {
   endTime: string;
   teacherId?: string;
   teacherName?: string;
+  isLunchBreak?: boolean;
   isCancelled?: boolean;
   cancelledAt?: string;
   cancelReason?: string;
@@ -38,9 +39,17 @@ export default function TimetablePage() {
   const [editForm, setEditForm] = useState({ subject: '', day: 'Monday', startTime: '', endTime: '' });
   const [savingEdit, setSavingEdit] = useState(false);
   const [showAllTimetable, setShowAllTimetable] = useState(false);
+  const [showLunchBreakModal, setShowLunchBreakModal] = useState(false);
   const [allEntries, setAllEntries] = useState<TimetableEntry[]>([]);
   const [loadingAll, setLoadingAll] = useState(false);
   const [selectedDay, setSelectedDay] = useState(DAYS[0]);
+  const [lunchBreakStart, setLunchBreakStart] = useState('');
+  const [lunchBreakEnd, setLunchBreakEnd] = useState('');
+  const [lunchBreakOverrides, setLunchBreakOverrides] = useState<Record<string, { startTime: string; endTime: string }>>({});
+  const [overrideDay, setOverrideDay] = useState(DAYS[0]);
+  const [overrideStart, setOverrideStart] = useState('');
+  const [overrideEnd, setOverrideEnd] = useState('');
+  const [savingLunch, setSavingLunch] = useState(false);
   const toast = useToast();
 
   const loadEntries = useCallback(async () => {
@@ -64,9 +73,13 @@ export default function TimetablePage() {
       .then(res => res.json())
       .then(data => {
         const subject = typeof data?.subject === 'string' ? data.subject.trim() : '';
-        if (!subject) return;
-        setTeacherSubject(subject);
-        setFormData(prev => ({ ...prev, subject: prev.subject || subject }));
+        if (subject) {
+          setTeacherSubject(subject);
+          setFormData(prev => ({ ...prev, subject: prev.subject || subject }));
+        }
+        setLunchBreakStart(typeof data?.lunchBreakStart === 'string' ? data.lunchBreakStart : '');
+        setLunchBreakEnd(typeof data?.lunchBreakEnd === 'string' ? data.lunchBreakEnd : '');
+        setLunchBreakOverrides(data?.lunchBreakOverrides && typeof data.lunchBreakOverrides === 'object' ? data.lunchBreakOverrides : {});
       })
       .catch(() => {});
   }, []);
@@ -94,6 +107,17 @@ export default function TimetablePage() {
     window.addEventListener('attendance:update', onUpdate as any);
     return () => window.removeEventListener('attendance:update', onUpdate as any);
   }, [loadEntries, loadAllEntries, showAllTimetable]);
+
+  useEffect(() => {
+    const current = lunchBreakOverrides[overrideDay];
+    if (current) {
+      setOverrideStart(current.startTime || '');
+      setOverrideEnd(current.endTime || '');
+    } else {
+      setOverrideStart('');
+      setOverrideEnd('');
+    }
+  }, [overrideDay, lunchBreakOverrides]);
 
   const upcomingLectures = useMemo(() => {
     const toMinutes = (t: string) => {
@@ -162,6 +186,120 @@ export default function TimetablePage() {
       toast.showToast?.('Failed to add timetable entry', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const saveFixedLunchBreak = async () => {
+    if (!lunchBreakStart || !lunchBreakEnd) {
+      toast.showToast?.('Set both lunch break start and end time', 'error');
+      return;
+    }
+    if (lunchBreakStart >= lunchBreakEnd) {
+      toast.showToast?.('Lunch break end time must be after start time', 'error');
+      return;
+    }
+
+    setSavingLunch(true);
+    try {
+      const res = await fetch('/api/user/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lunchBreakStart,
+          lunchBreakEnd,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok) {
+        toast.showToast?.('Default lunch break saved successfully!', 'success');
+        try {
+          const bc = new BroadcastChannel('attendance_channel');
+          bc.postMessage({ type: 'timetable_updated', source: 'teacher-lunch-break' });
+          bc.close();
+        } catch (e) {}
+      } else {
+        toast.showToast?.(data?.error || 'Failed to save default lunch break', 'error');
+      }
+    } catch (e) {
+      toast.showToast?.('Failed to save default lunch break', 'error');
+    } finally {
+      setSavingLunch(false);
+    }
+  };
+
+  const saveDayOverride = async () => {
+    if (!overrideStart || !overrideEnd) {
+      toast.showToast?.('Set both override start and end time', 'error');
+      return;
+    }
+    if (overrideStart >= overrideEnd) {
+      toast.showToast?.('Override end time must be after start time', 'error');
+      return;
+    }
+
+    const nextOverrides = {
+      ...lunchBreakOverrides,
+      [overrideDay]: { startTime: overrideStart, endTime: overrideEnd },
+    };
+
+    setSavingLunch(true);
+    try {
+      const res = await fetch('/api/user/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lunchBreakOverrides: nextOverrides }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.showToast?.(data?.error || 'Failed to save day override', 'error');
+        return;
+      }
+      setLunchBreakOverrides(nextOverrides);
+      toast.showToast?.(`${overrideDay} lunch break override saved`, 'success');
+      try {
+        const bc = new BroadcastChannel('attendance_channel');
+        bc.postMessage({ type: 'timetable_updated', source: 'teacher-lunch-break' });
+        bc.close();
+      } catch (e) {}
+    } catch (e) {
+      toast.showToast?.('Failed to save day override', 'error');
+    } finally {
+      setSavingLunch(false);
+    }
+  };
+
+  const clearDayOverride = async () => {
+    if (!lunchBreakOverrides[overrideDay]) {
+      toast.showToast?.(`No override set for ${overrideDay}`, 'info');
+      return;
+    }
+    const nextOverrides = { ...lunchBreakOverrides };
+    delete nextOverrides[overrideDay];
+
+    setSavingLunch(true);
+    try {
+      const res = await fetch('/api/user/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lunchBreakOverrides: nextOverrides }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.showToast?.(data?.error || 'Failed to clear day override', 'error');
+        return;
+      }
+      setLunchBreakOverrides(nextOverrides);
+      toast.showToast?.(`${overrideDay} override cleared`, 'success');
+      try {
+        const bc = new BroadcastChannel('attendance_channel');
+        bc.postMessage({ type: 'timetable_updated', source: 'teacher-lunch-break' });
+        bc.close();
+      } catch (e) {}
+    } catch (e) {
+      toast.showToast?.('Failed to clear day override', 'error');
+    } finally {
+      setSavingLunch(false);
     }
   };
 
@@ -259,12 +397,14 @@ export default function TimetablePage() {
     if (!editingEntry) return;
     setSavingEdit(true);
     const target = editingEntry;
+    const nextSubject = target.isLunchBreak ? 'Lunch Break' : (teacherSubject || editForm.subject).trim();
     const payload = {
       id: target.id,
-      subject: (teacherSubject || editForm.subject).trim(),
+      subject: nextSubject,
       day: editForm.day,
       startTime: editForm.startTime,
       endTime: editForm.endTime,
+      isLunchBreak: !!target.isLunchBreak,
     };
     const backup = entries;
     setEntries(prev =>
@@ -310,9 +450,14 @@ export default function TimetablePage() {
     <DashboardLayout role={UserRole.TEACHER}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: '20px' }}>
         <h1 style={{ margin: 0, color: '#003366' }}>Create Timetable</h1>
-        <button type="button" className="btn btn-outline" onClick={openAllTimetable}>
-          Check Timetable
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button type="button" className="btn btn-outline" onClick={() => setShowLunchBreakModal(true)}>
+            Set Lunch Break
+          </button>
+          <button type="button" className="btn btn-outline" onClick={openAllTimetable}>
+            Check Timetable
+          </button>
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
@@ -320,12 +465,12 @@ export default function TimetablePage() {
           <form onSubmit={handleSubmit}>
             <div className="input-group">
               <label>Subject</label>
-              <input
-                type="text"
-                className="form-control"
-                required
-                readOnly={!!teacherSubject}
-                value={formData.subject} onChange={(e) => setFormData({ ...formData, subject: e.target.value })} />
+                <input
+                  type="text"
+                  className="form-control"
+                  required
+                  readOnly={!!teacherSubject}
+                  value={formData.subject} onChange={(e) => setFormData({ ...formData, subject: e.target.value })} />
               {teacherSubject && (
                 <small style={{ color: 'var(--text-secondary)' }}>
                   Subject auto-filled from your registration profile.
@@ -357,9 +502,10 @@ export default function TimetablePage() {
             </div>
 
             <button type="submit" className="btn" disabled={loading}>
-              {loading ? 'Saving...' : 'Add to Timetable'}
+                {loading ? 'Saving...' : 'Add to Timetable'}
             </button>
           </form>
+
         </div>
 
         <div className="card" style={{ alignSelf: 'start' }}>
@@ -395,6 +541,26 @@ export default function TimetablePage() {
                   <div style={{ marginTop: 4, color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
                     {entry.startTime} - {entry.endTime}
                   </div>
+                  {entry.isLunchBreak && (
+                    <div style={{ marginTop: 6 }}>
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          padding: '4px 10px',
+                          borderRadius: 999,
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          background: '#fff7ed',
+                          color: '#9a3412',
+                          border: '1px solid #fdba74',
+                        }}
+                      >
+                        Lunch Break
+                      </span>
+                    </div>
+                  )}
                   {entry.isCancelled && (
                     <div style={{ marginTop: 6 }}>
                       <span
@@ -461,8 +627,8 @@ export default function TimetablePage() {
                 <input
                   type="text"
                   className="form-control"
-                  value={teacherSubject || editForm.subject}
-                  readOnly={!!teacherSubject}
+                  value={editingEntry.isLunchBreak ? 'Lunch Break' : (teacherSubject || editForm.subject)}
+                  readOnly={!!teacherSubject || !!editingEntry.isLunchBreak}
                   onChange={(e) => setEditForm(prev => ({ ...prev, subject: e.target.value }))}
                 />
               </div>
@@ -544,7 +710,14 @@ export default function TimetablePage() {
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {(allLecturesByDay[selectedDay] || []).map((entry) => (
                           <div key={entry.id} style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 8, background: entry.isCancelled ? '#fff1f2' : '#fff' }}>
-                            <div style={{ fontWeight: 600 }}>{entry.subject}</div>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                              <div style={{ fontWeight: 600 }}>{entry.subject}</div>
+                              {entry.isLunchBreak && (
+                                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#9a3412', background: '#ffedd5', border: '1px solid #fdba74', borderRadius: 999, padding: '2px 8px' }}>
+                                  Lunch Break
+                                </span>
+                              )}
+                            </div>
                             <div style={{ fontSize: '0.86rem', color: 'var(--text-secondary)' }}>
                               {entry.startTime} - {entry.endTime}
                             </div>
@@ -566,6 +739,67 @@ export default function TimetablePage() {
             </div>
             <div className="modal-footer">
               <button className="btn btn-outline" onClick={() => setShowAllTimetable(false)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showLunchBreakModal && (
+        <div className="modal-overlay" onClick={() => !savingLunch && setShowLunchBreakModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 620 }}>
+            <div className="modal-header"><h3>Set Lunch Break</h3></div>
+            <div className="modal-body">
+              <p style={{ margin: '0 0 10px 0', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                Set a default lunch break once for all working days, and use Day Override only when a specific day needs a different timing.
+              </p>
+              <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
+                <div className="input-group" style={{ flex: 1 }}>
+                  <label>Default Start</label>
+                  <input type="time" className="form-control" value={lunchBreakStart} onChange={(e) => setLunchBreakStart(e.target.value)} />
+                </div>
+                <div className="input-group" style={{ flex: 1 }}>
+                  <label>Default End</label>
+                  <input type="time" className="form-control" value={lunchBreakEnd} onChange={(e) => setLunchBreakEnd(e.target.value)} />
+                </div>
+              </div>
+              <button type="button" className="btn btn-outline" onClick={saveFixedLunchBreak} disabled={savingLunch}>
+                {savingLunch ? 'Saving...' : 'Save Fixed Lunch Break'}
+              </button>
+
+              <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px dashed var(--border-color)' }}>
+                <h5 style={{ marginBottom: 8, color: 'var(--text-primary)' }}>Day Override</h5>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'end' }}>
+                  <div className="input-group" style={{ minWidth: 150 }}>
+                    <label>Day</label>
+                    <select className="form-control" value={overrideDay} onChange={(e) => setOverrideDay(e.target.value)}>
+                      {DAYS.map((day) => (
+                        <option key={day} value={day}>{day}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="input-group">
+                    <label>Start</label>
+                    <input type="time" className="form-control" value={overrideStart} onChange={(e) => setOverrideStart(e.target.value)} />
+                  </div>
+                  <div className="input-group">
+                    <label>End</label>
+                    <input type="time" className="form-control" value={overrideEnd} onChange={(e) => setOverrideEnd(e.target.value)} />
+                  </div>
+                  <button type="button" className="btn btn-sm" onClick={saveDayOverride} disabled={savingLunch}>
+                    Save Override
+                  </button>
+                  <button type="button" className="btn btn-sm btn-outline" onClick={clearDayOverride} disabled={savingLunch}>
+                    Clear Day Override
+                  </button>
+                </div>
+                {lunchBreakOverrides[overrideDay] && (
+                  <p style={{ marginTop: 8, fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                    Current {overrideDay} override: {lunchBreakOverrides[overrideDay].startTime} - {lunchBreakOverrides[overrideDay].endTime}
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-outline" onClick={() => setShowLunchBreakModal(false)} disabled={savingLunch}>Close</button>
             </div>
           </div>
         </div>

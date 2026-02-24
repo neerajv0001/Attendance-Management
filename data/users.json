@@ -1,7 +1,47 @@
 [
   {
+    "id": "STU2026932",
+    "username": "STU2026932",
+    "passwordHash": "$2b$10$LIJT5BFD/z6jRYHBoVtkT.pHrFbEY4XjTNYyRknAAfikJeiUfxeAa",
+    "role": "STUDENT",
+    "name": "abhishek dhuriya ",
+    "email": "",
+    "department": "Bsc IT",
+    "createdAt": "2026-02-24T09:03:42.230Z"
+  },
+  {
+    "id": "teacher-1771923522226",
+    "username": "teacher5@test.com",
+    "passwordHash": "$2b$10$2o3fRkPBniZstSnh1vR8LeVcWOgFgJFzEhB6MKRme2lFpZmingwl6",
+    "role": "TEACHER",
+    "name": "Yuvraj Wagh",
+    "email": "teacher5@test.com",
+    "phone": "1234567899",
+    "qualification": "M.Ed",
+    "experience": "12",
+    "subject": "Bussiness Intelligence & Data Analysis",
+    "courseId": "course-1771404653962",
+    "isApproved": false,
+    "createdAt": "2026-02-24T08:58:42.226Z"
+  },
+  {
+    "id": "teacher-1771915641928",
+    "username": "teacher4@test.com",
+    "passwordHash": "$2b$10$S5q3Gipb.yVNDgLz/idBVOoYOx9Xub1fjnmH75/1Qcuf9ITyNtxq.",
+    "role": "TEACHER",
+    "name": "Sarita Kumari",
+    "email": "teacher4@test.com",
+    "phone": "1234567899",
+    "qualification": "M.Ed",
+    "experience": "3",
+    "subject": "Information Security",
+    "courseId": "course-1771404653962",
+    "isApproved": true,
+    "createdAt": "2026-02-24T06:47:21.928Z"
+  },
+  {
     "id": "teacher-1771902560494",
-    "username": "teacher2@test.com",
+    "username": "teacher3@test.com",
     "passwordHash": "$2b$10$a77iit12fWcw5CTIE21deucH7GTYpV0AxzzGFaLloiWFRLAyGVvwW",
     "role": "TEACHER",
     "name": "Deore Dnyneshwar",
@@ -16,11 +56,11 @@
   },
   {
     "id": "teacher-1771864876446",
-    "username": "teacher1@test.com",
+    "username": "teacher2@test.com",
     "passwordHash": "$2b$10$sIZ089GMaefRkH3CSUW92.sPpzV9d6Tz10IQ351Vx7v8fnAE8a/7q",
     "role": "TEACHER",
     "name": "Soni Singh",
-    "email": "soni@test.com",
+    "email": "teacher2@test.com",
     "phone": "1234567899",
     "qualification": "M tech ",
     "experience": "4",
@@ -38,16 +78,6 @@
     "email": "",
     "department": "Bsc IT",
     "createdAt": "2026-02-23T14:40:09.057Z"
-  },
-  {
-    "id": "STU2026241",
-    "username": "STU2026241",
-    "passwordHash": "$2b$10$xRIrEBwSiEHGw0v8WOuupepZ9/Dva8N3o8.vH/P/Y/Rjv84oolNUK",
-    "role": "STUDENT",
-    "name": "abhishek sheikh",
-    "email": "",
-    "department": "Bsc IT",
-    "createdAt": "2026-02-23T09:11:55.530Z"
   },
   {
     "id": "STU2026502",
@@ -69,17 +99,19 @@
   },
   {
     "id": "teacher-1771413429408",
-    "username": "teacher@test.com",
+    "username": "teacher1@test.com",
     "passwordHash": "$2b$10$FFKSDcq8nKjlNJx7nDe4J.d3nbUa331B0cJPGgRanQWaEQBF0mXYS",
     "role": "TEACHER",
     "name": "vanita sharma",
-    "email": "vanitasharma@test.com",
+    "email": "teacher1@test.com",
     "qualification": "M tech",
     "experience": "6",
     "subject": "Software Testing & Quality Assurance",
     "courseId": "course-1771404653962",
     "isApproved": true,
-    "createdAt": "2026-02-18T11:17:09.408Z"
+    "createdAt": "2026-02-18T11:17:09.408Z",
+    "lunchBreakStart": "03:10",
+    "lunchBreakEnd": "03:30"
   },
   {
     "id": "STU2026807",

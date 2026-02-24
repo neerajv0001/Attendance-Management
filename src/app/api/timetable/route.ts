@@ -3,6 +3,9 @@ import { db } from '@/lib/db';
 import { UserRole } from '@/lib/types';
 import { getSessionUser } from '@/lib/auth';
 
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+type LunchOverrideMap = Record<string, { startTime?: string; endTime?: string }>;
+
 const toMinutes = (time: string): number => {
     const match = /^(\d{2}):(\d{2})$/.exec(time);
     if (!match) return Number.NaN;
@@ -21,6 +24,18 @@ const hasTimeOverlap = (startA: string, endA: string, startB: string, endB: stri
     return aStart < bEnd && bStart < aEnd;
 };
 
+const getLunchBreakForDay = (
+    teacher: { lunchBreakStart?: string; lunchBreakEnd?: string; lunchBreakOverrides?: LunchOverrideMap } | undefined,
+    day: string
+): { startTime?: string; endTime?: string } => {
+    const overrides = teacher?.lunchBreakOverrides || {};
+    const dayOverride = overrides?.[day];
+    return {
+        startTime: dayOverride?.startTime || teacher?.lunchBreakStart,
+        endTime: dayOverride?.endTime || teacher?.lunchBreakEnd,
+    };
+};
+
 export async function GET(req: Request) {
     const session = await getSessionUser();
     if (!session) {
@@ -29,31 +44,54 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const scope = searchParams.get('scope');
-    const timetable = await db.timetable.getAll();
+    const timetable = (await db.timetable.getAll()).filter((entry) => !entry.isLunchBreak);
+    const users = await db.users.getAll();
+    const teacherUsers = users.filter((u) => u.role === UserRole.TEACHER);
+    const teacherNameById = new Map(
+        teacherUsers.map((u) => [u.id, u.name || u.username || u.id] as const)
+    );
+    const regularWithTeacher = timetable.map((entry) => ({
+        ...entry,
+        teacherName: teacherNameById.get(entry.teacherId || '') || entry.teacherId || 'N/A',
+    }));
+
+    const virtualLunchBreaks = teacherUsers.flatMap((teacher) => {
+        if (!teacher.lunchBreakStart || !teacher.lunchBreakEnd) return [];
+        const overrides = teacher.lunchBreakOverrides || {};
+        return DAYS.map((day) => {
+            const override = overrides[day];
+            const startTime = override?.startTime || teacher.lunchBreakStart!;
+            const endTime = override?.endTime || teacher.lunchBreakEnd!;
+            return {
+                id: `lunch-${teacher.id}-${day}`,
+                subject: 'Lunch Break',
+                day,
+                startTime,
+                endTime,
+                teacherId: teacher.id,
+                teacherName: teacher.name || teacher.username || teacher.id,
+                isLunchBreak: true,
+                isCancelled: false,
+            };
+        });
+    });
 
     if (scope === 'all') {
         if (session.role !== UserRole.TEACHER && session.role !== UserRole.ADMIN && session.role !== UserRole.STUDENT) {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
-        const users = await db.users.getAll();
-        const teacherNameById = new Map(
-            users
-                .filter((u) => u.role === UserRole.TEACHER)
-                .map((u) => [u.id, u.name || u.username || u.id] as const)
-        );
-        return NextResponse.json(
-            timetable.map((entry) => ({
-                ...entry,
-                teacherName: teacherNameById.get(entry.teacherId || '') || entry.teacherId || 'N/A',
-            }))
-        );
+        return NextResponse.json(regularWithTeacher);
     }
 
     if (session.role === UserRole.TEACHER) {
         return NextResponse.json(timetable.filter((entry) => entry.teacherId === session.id));
     }
 
-    return NextResponse.json(timetable);
+    if (session.role === UserRole.STUDENT) {
+        return NextResponse.json([...regularWithTeacher, ...virtualLunchBreaks]);
+    }
+
+    return NextResponse.json(regularWithTeacher);
 }
 
 export async function POST(req: Request) {
@@ -63,8 +101,10 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { subject, day, startTime, endTime } = await req.json();
-        if (!subject || !day || !startTime || !endTime) {
+        const { subject, day, startTime, endTime, isLunchBreak } = await req.json();
+        const nextIsLunchBreak = !!isLunchBreak;
+        const nextSubject = nextIsLunchBreak ? 'Lunch Break' : (typeof subject === 'string' ? subject.trim() : '');
+        if (!nextSubject || !day || !startTime || !endTime) {
             return NextResponse.json({ error: 'Subject, day and time are required' }, { status: 400 });
         }
         const startMinutes = toMinutes(startTime);
@@ -73,7 +113,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Invalid time range' }, { status: 400 });
         }
 
-        const current = await db.timetable.getAll();
+        const current = (await db.timetable.getAll()).filter((entry) => !entry.isLunchBreak);
         const conflicting = current.find((entry) =>
             entry.day === day && hasTimeOverlap(startTime, endTime, entry.startTime, entry.endTime)
         );
@@ -85,14 +125,23 @@ export async function POST(req: Request) {
                 error: `Time conflict: ${teacherName} already has class on ${day} from ${conflicting.startTime} to ${conflicting.endTime}.`,
             }, { status: 409 });
         }
+        const users = await db.users.getAll();
+        const teacher = users.find((u) => u.id === session.id);
+        const lunch = getLunchBreakForDay(teacher, day);
+        if (lunch.startTime && lunch.endTime && hasTimeOverlap(startTime, endTime, lunch.startTime, lunch.endTime)) {
+            return NextResponse.json({
+                error: `Time conflict: Lunch break is set on ${day} from ${lunch.startTime} to ${lunch.endTime}.`,
+            }, { status: 409 });
+        }
 
         const newEntry = {
             id: `tt-${Date.now()}`,
-            subject,
+            subject: nextSubject,
             day,
             startTime,
             endTime,
             teacherId: session.id,
+            isLunchBreak: nextIsLunchBreak,
             isCancelled: false,
         };
 
@@ -111,7 +160,7 @@ export async function PUT(req: Request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { id, isCancelled, cancelReason, subject, day, startTime, endTime } = await req.json();
+        const { id, isCancelled, cancelReason, subject, day, startTime, endTime, isLunchBreak } = await req.json();
         if (!id) return NextResponse.json({ error: 'Missing or invalid payload' }, { status: 400 });
 
         const current = await db.timetable.getAll();
@@ -142,6 +191,7 @@ export async function PUT(req: Request) {
 
         const conflicting = current.find((entry) =>
             entry.id !== existing.id
+            && !entry.isLunchBreak
             && entry.day === nextDay
             && hasTimeOverlap(nextStartTime, nextEndTime, entry.startTime, entry.endTime)
         );
@@ -153,13 +203,24 @@ export async function PUT(req: Request) {
                 error: `Time conflict: ${teacherName} already has class on ${nextDay} from ${conflicting.startTime} to ${conflicting.endTime}.`,
             }, { status: 409 });
         }
+        const users = await db.users.getAll();
+        const teacher = users.find((u) => u.id === session.id);
+        const lunch = getLunchBreakForDay(teacher, nextDay);
+        if (lunch.startTime && lunch.endTime && hasTimeOverlap(nextStartTime, nextEndTime, lunch.startTime, lunch.endTime)) {
+            return NextResponse.json({
+                error: `Time conflict: Lunch break is set on ${nextDay} from ${lunch.startTime} to ${lunch.endTime}.`,
+            }, { status: 409 });
+        }
 
         const nextEntry = {
             ...existing,
-            subject: typeof subject === 'string' ? subject.trim() : existing.subject,
+            subject: typeof subject === 'string' && subject.trim()
+                ? subject.trim()
+                : (existing.isLunchBreak ? 'Lunch Break' : existing.subject),
             day: nextDay,
             startTime: nextStartTime,
             endTime: nextEndTime,
+            isLunchBreak: typeof isLunchBreak === 'boolean' ? isLunchBreak : !!existing.isLunchBreak,
             isCancelled: hasCancelToggle ? isCancelled : existing.isCancelled,
             cancelledAt: hasCancelToggle
                 ? (isCancelled ? new Date().toISOString() : undefined)

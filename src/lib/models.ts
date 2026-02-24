@@ -16,6 +16,9 @@ export interface IUser extends Document {
     experience?: string;
     department?: string;
     courseId?: string;
+    lunchBreakStart?: string;
+    lunchBreakEnd?: string;
+    lunchBreakOverrides?: Record<string, { startTime: string; endTime: string }>;
     createdAt: Date;
 }
 
@@ -33,6 +36,9 @@ const UserSchema = new Schema<IUser>({
     experience: { type: String },
     department: { type: String },
     courseId: { type: String },
+    lunchBreakStart: { type: String },
+    lunchBreakEnd: { type: String },
+    lunchBreakOverrides: { type: Schema.Types.Mixed },
     createdAt: { type: Date, default: Date.now }
 });
 
@@ -74,6 +80,7 @@ export interface ITimetableEntry extends Document {
     startTime: string;
     endTime: string;
     teacherId: string;
+    isLunchBreak?: boolean;
     isCancelled?: boolean;
     cancelledAt?: Date;
     cancelReason?: string;
@@ -86,6 +93,7 @@ const TimetableEntrySchema = new Schema<ITimetableEntry>({
     startTime: { type: String, required: true },
     endTime: { type: String, required: true },
     teacherId: { type: String, required: true },
+    isLunchBreak: { type: Boolean, default: false },
     isCancelled: { type: Boolean, default: false },
     cancelledAt: { type: Date },
     cancelReason: { type: String }

@@ -195,12 +195,33 @@ export default function StudentDashboard() {
               {todayClasses.map((cls, idx) => (
                 <div key={idx} style={{ 
                   padding: '16px', 
-                  background: cls.isCancelled ? '#fff1f2' : '#f8fafc', 
+                  background: cls.isCancelled ? '#fff1f2' : (cls.isLunchBreak ? '#fffbeb' : '#f8fafc'),
                   borderRadius: '8px',
-                  borderLeft: cls.isCancelled ? '4px solid #ef4444' : '4px solid var(--accent-color)'
+                  borderLeft: cls.isCancelled
+                    ? '4px solid #ef4444'
+                    : (cls.isLunchBreak ? '4px solid #f59e0b' : '4px solid var(--accent-color)')
                 }}>
-                  <div style={{ fontWeight: '600', color: 'var(--primary-color)', marginBottom: '4px', textDecoration: cls.isCancelled ? 'line-through' : 'none' }}>
-                    {cls.subject}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: '4px' }}>
+                    <div style={{ fontWeight: '600', color: 'var(--primary-color)', textDecoration: cls.isCancelled ? 'line-through' : 'none' }}>
+                      {cls.subject}
+                    </div>
+                    {cls.isLunchBreak && (
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          padding: '3px 10px',
+                          borderRadius: 999,
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          background: '#ffedd5',
+                          color: '#9a3412',
+                          border: '1px solid #fdba74',
+                        }}
+                      >
+                        Lunch Break
+                      </span>
+                    )}
                   </div>
                   <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
                     {cls.startTime} - {cls.endTime}

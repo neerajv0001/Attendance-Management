@@ -103,11 +103,15 @@ export async function GET(req: Request) {
             .map((u: any) => [u.id, u.subject || 'General'])
     );
 
-    const enriched = records.map((r: any) => ({
-        ...r,
-        teacherName: r.teacherName || teacherNameById.get(r.teacherId) || r.teacherId || '',
-        subject: r.subject || teacherSubjectById.get(r.teacherId) || 'General',
-    }));
+    const enriched = records.map((r: any) => {
+        const currentTeacherName = r.teacherId ? teacherNameById.get(r.teacherId) : '';
+        return {
+            ...r,
+            // Prefer the latest teacher profile name so admin edits reflect everywhere.
+            teacherName: currentTeacherName || r.teacherName || r.teacherId || '',
+            subject: r.subject || teacherSubjectById.get(r.teacherId) || 'General',
+        };
+    });
 
     if (studentId) {
         return NextResponse.json(

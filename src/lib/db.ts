@@ -27,6 +27,9 @@ export const db = {
                     experience: u.experience,
                     department: u.department,
                     courseId: u.courseId,
+                    lunchBreakStart: u.lunchBreakStart,
+                    lunchBreakEnd: u.lunchBreakEnd,
+                    lunchBreakOverrides: u.lunchBreakOverrides,
                     createdAt: (u.createdAt instanceof Date)
                         ? u.createdAt.toISOString()
                         : (typeof u.createdAt === 'string' ? u.createdAt : new Date(u.createdAt).toISOString()),
@@ -51,6 +54,9 @@ export const db = {
                         experience: u.experience,
                         department: u.department,
                         courseId: u.courseId,
+                        lunchBreakStart: u.lunchBreakStart,
+                        lunchBreakEnd: u.lunchBreakEnd,
+                        lunchBreakOverrides: u.lunchBreakOverrides,
                         createdAt: typeof u.createdAt === 'string' ? u.createdAt : new Date(u.createdAt).toISOString(),
                     }));
                 } catch (fileErr) {
@@ -86,6 +92,9 @@ export const db = {
                     experience: user.experience,
                     department: user.department,
                     courseId: user.courseId,
+                    lunchBreakStart: user.lunchBreakStart,
+                    lunchBreakEnd: user.lunchBreakEnd,
+                    lunchBreakOverrides: user.lunchBreakOverrides,
                     createdAt: new Date(user.createdAt),
                 });
                 return user;
@@ -135,6 +144,9 @@ export const db = {
                     experience: user.experience,
                     department: user.department,
                     courseId: user.courseId,
+                    lunchBreakStart: user.lunchBreakStart,
+                    lunchBreakEnd: user.lunchBreakEnd,
+                    lunchBreakOverrides: user.lunchBreakOverrides,
                     createdAt: (user.createdAt instanceof Date)
                         ? user.createdAt.toISOString()
                         : (typeof user.createdAt === 'string' ? user.createdAt : new Date(user.createdAt).toISOString()),
@@ -327,6 +339,7 @@ export const db = {
                     startTime: e.startTime,
                     endTime: e.endTime,
                     teacherId: e.teacherId,
+                    isLunchBreak: !!e.isLunchBreak,
                     isCancelled: !!e.isCancelled,
                     cancelledAt: e.cancelledAt
                         ? (e.cancelledAt instanceof Date ? e.cancelledAt.toISOString() : new Date(e.cancelledAt).toISOString())
@@ -346,6 +359,7 @@ export const db = {
                         startTime: e.startTime,
                         endTime: e.endTime,
                         teacherId: e.teacherId,
+                        isLunchBreak: !!e.isLunchBreak,
                         isCancelled: !!e.isCancelled,
                         cancelledAt: e.cancelledAt,
                         cancelReason: e.cancelReason,
