@@ -1078,6 +1078,8 @@ body.sidebar-open-temp .sidebar .brand-label {
   backdrop-filter: blur(8px);
 }
 
+
+
 .modal {
   background: linear-gradient(180deg, #ffffff 0%, #fdfefe 100%);
   border-radius: var(--radius);
@@ -1479,6 +1481,8 @@ body.sidebar-open-temp .sidebar .brand-label {
 /* Keep number fields visually consistent with other auth inputs */
 .auth-field[type="number"] {
   -moz-appearance: textfield;
+  -webkit-appearance: textfield;
+  appearance: textfield;
 }
 
 .auth-field[type="number"]::-webkit-outer-spin-button,
@@ -1661,3 +1665,84 @@ body.sidebar-open-temp .sidebar .brand-label {
   }
 }
 
+/* Mobile sidebar drawer and stacked nav (below 768px) */
+@media (max-width: 767px) {
+  /* Make sidebar a left drawer that is hidden by default */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 260px;
+    transform: translateX(-100%);
+    transition: transform 260ms ease;
+    z-index: 60;
+    box-shadow: 8px 0 30px rgba(2,6,23,0.28);
+    will-change: transform;
+  }
+
+  /* When body has the toggle class, slide it in */
+  body.sidebar-mobile-open .sidebar {
+    transform: translateX(0);
+  }
+
+  /* Create a page overlay when open (visual only) */
+  body.sidebar-mobile-open::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 55;
+    pointer-events: auto;
+  }
+
+  /* Stack menu items vertically and make them full-width */
+  .sidebar .sidebar-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding-top: 12px;
+  }
+
+  .sidebar .sidebar-menu li a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    width: 100%;
+    color: #fff;
+  }
+
+  .sidebar .sidebar-profile,
+  .sidebar .sidebar-footer {
+    padding: 12px 16px;
+  }
+
+  /* Ensure main content uses full width on small screens */
+  .main-content {
+    margin-left: 0 !important;
+  }
+
+  /* Tweak top navbar on phones */
+  .top-navbar {
+    padding: 0 12px;
+    height: 56px;
+  }
+
+  /* Ensure hamburger shows (your globals already toggles visibility at 1024px) */
+  .top-navbar .menu-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+  }
+
+  /* Slight adjustments for very small phones */
+  @media (max-width: 420px) {
+    .sidebar { width: 84%; }
+    .sidebar .sidebar-menu li a { padding: 12px 14px; font-size: 0.95rem; }
+    .top-navbar { height: 52px; }
+  }
+}

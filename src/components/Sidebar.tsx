@@ -173,9 +173,10 @@ export default function Sidebar({ role, isOpen, forceLocked }: SidebarProps) {
         <ul className="sidebar-menu">
           {items.map((item) => (
             <li key={item.path}>
-              <Link 
-                href={item.path} 
+              <Link
+                href={item.path}
                 className={`group ${mounted && pathname === item.path ? 'active bg-blue-600/20 text-blue-400 border-r-4 border-blue-500' : ''}`}
+                onClick={() => { try { document.body.classList.remove('sidebar-mobile-open'); } catch (e) {} }}
               >
                 <span className="sidebar-icon text-gray-400 group-hover:text-white transition-all">{item.icon}</span>
                 <span className="sidebar-label">{item.name}</span>

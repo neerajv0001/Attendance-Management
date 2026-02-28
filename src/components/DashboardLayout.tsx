@@ -74,6 +74,19 @@ export default function DashboardLayout({ children, role }: { children: React.Re
       <Sidebar role={role} isOpen={sidebarOpen} />
        <div className="main-content">
          <header className="top-navbar">
+          <button
+  className="menu-toggle"
+  onClick={() => {
+    try { document.body.classList.toggle('sidebar-mobile-open'); } catch (e) {}
+  }}
+  aria-label="Toggle menu"
+  title="Toggle menu"
+  style={{ background: 'transparent', border: 'none', padding: 8, cursor: 'pointer' }}
+>
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M4 6h16M4 12h16M4 18h16" />
+  </svg>
+</button>
            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               <div style={{ textAlign: 'right' }}>
                 <div suppressHydrationWarning style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '0.95rem' }}>
